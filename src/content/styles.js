@@ -108,6 +108,20 @@
     return false;
   }
 
+  const REPLACED = new Set(['img', 'svg', 'video', 'canvas', 'iframe', 'object', 'embed', 'picture']);
+
+  /**
+   * Whether type styles are worth reporting. Every element inherits a font, but
+   * on an image or a layout container that is noise, not a spec.
+   */
+  function showsType(el) {
+    const tag = el.tagName.toLowerCase();
+    if (REPLACED.has(tag)) return false;
+    if (hasOwnText(el)) return true;
+    // Form controls render text from a value rather than a child text node.
+    return el.children.length === 0 && ['input', 'textarea', 'select', 'option'].includes(tag);
+  }
+
   DT.styles = {
     describe,
     parseColor,
@@ -147,6 +161,7 @@
 
         typography: {
           hasText: hasOwnText(el),
+          showsType: showsType(el),
           family: firstFamily(cs.fontFamily),
           familyStack: cs.fontFamily,
           size: fontSize,

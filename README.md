@@ -23,11 +23,13 @@ refresh the page you are testing.
 | --- | --- |
 | Click the toolbar icon, or `Alt+Shift+D` | Arms inspect mode (badge reads `ON`) |
 | Hover | Card shows typography, spacing, layout, fill for whatever is under the cursor |
-| Click an element | Locks it as **A** (blue). The card docks to a top corner |
+| | The card stays docked in a top corner, on the side away from what you are inspecting |
+| Click an element | Locks it as **A** (blue) |
 | Hover another element | Live measurement between A and it |
 | Click again | Freezes it as **B** (amber) |
 | Click a third element | Starts a new measurement from that element |
 | `Alt` + scroll, or `[` / `]` | Walks up and down the DOM from the current element |
+| `U` | Cycles px / rem / em without reaching for the card |
 | Click any value in the card | Copies it |
 | `px` / `rem` / `em` in the card header | Converts every number at once. Remembered between pages |
 | `Esc` | Clears the measurement. `Esc` again exits inspect mode |
@@ -55,6 +57,8 @@ confidently wrong numbers, which is exactly where QA bugs hide.
   element in the page against an element inside an iframe is not supported.
 - **Highlight badges** show rendered size in px regardless of the unit toggle;
   the card is the source of truth for converted values.
+- **The card does not follow the cursor.** It docks to a top corner so it is
+  always reachable and never covers what you are measuring.
 - Canvas, WebGL and video content is inspected as the element that contains it.
 
 ## Layout
@@ -72,7 +76,21 @@ src/content/
   card.js               the card
   spacing-box.js        the margin/border/padding diagram
 src/ui/overlay-styles.js  all injected CSS, as a string
+test/fixture.html       a page with known-correct values to check against
+test/verify.mjs         end-to-end checks in a real Chromium
 ```
+
+## Tests
+
+```bash
+npm install     # playwright, for the tests only; the extension has no dependencies
+npm test
+```
+
+Loads the extension into a real Chromium, drives it against `test/fixture.html`,
+and writes screenshots to `test/out/`. The mouse moves in small steps rather
+than teleporting, which is what a scripted click does and what let the v1 card
+ship unreachable.
 
 See `DESIGN.md` for the visual system and `DECISIONS.md` for why things are the
 way they are.

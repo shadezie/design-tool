@@ -108,6 +108,52 @@ Real layout produces subpixel values. Three decimals is noise, zero decimals
 hides genuine half-pixel bugs. Two is where it stops being useful and starts
 being clutter.
 
+## v1.1
+
+### The card could not be hovered, and it was a dodge bug
+
+Reported from real use: switching px/rem/em and clicking values to copy was
+painful to impossible. Two independent causes in `DT.card.position()`, and
+between them the card was unreachable in every state:
+
+- **Hover mode** placed the card at `cursor + 14px` every frame, so the pointer
+  was never inside it. Move toward it, it moves the same amount, forever.
+- **Locked mode** docked to a corner but flipped to the opposite corner once the
+  cursor came within 342px. Reach for it, it jumps across the screen.
+
+Pointer events were never the problem: `.card` correctly re-enables them inside
+the `pointer-events: none` layer. The v1 test missed it because scripted clicks
+teleport the mouse straight onto the target, which is the one way a human never
+approaches anything.
+
+Fixed by making the card always docked, choosing its corner from the inspected
+element rather than the cursor, and freezing it outright once the pointer comes
+near. `test/verify.mjs` now glides the mouse in 30 steps and asserts the card
+stays put; run against the pre-fix commit it fails exactly the four checks the
+bug caused.
+
+The floating tooltip is gone as a result, which is a real loss of the "card
+follows your eye" feel. The per-element readout it was providing is still on the
+page, in the highlight badge above each element.
+
+### `U` cycles units
+
+The toggle being reachable is necessary but still costs a mouse trip across the
+screen. `U` cycles px / rem / em from wherever your hand already is.
+
+### The values that matter got promoted to stat tiles
+
+Width and height for a container, and size / weight / line-height for text, were
+rendering at the same visual weight as `text-align` and `z-index`. Those are the
+numbers being checked during QA, so they now sit in large tiles above everything
+else, and are dropped from the detail rows below to avoid saying them twice.
+
+### Type styles are only reported where they mean something
+
+Every element inherits a font, so v1 showed a full Typography section on images
+and layout containers. It now appears only for elements that render their own
+text, plus form controls that render text from a value.
+
 ## Open questions for v2
 
 - Cross-frame measurement (element in the page vs element inside an iframe).

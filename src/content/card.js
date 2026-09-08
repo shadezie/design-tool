@@ -11,7 +11,7 @@
   const { units, styles, spacingBox } = DT;
 
   const MARGIN = 14;
-  const CARD_WIDTH = 300;
+  const CARD_WIDTH = 330;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -102,6 +102,60 @@
     return wrap;
   }
 
+  /**
+   * The values you are actually checking during QA, at a size you can read at a
+   * glance. Which three depends on what the element is: for text it is the type
+   * spec, for a container it is the box.
+   */
+  function heroTiles(data, fmt) {
+    const type = data.typography;
+    const tiles = [];
+
+    if (type.hasText) {
+      tiles.push(['Size', fmt(type.size)]);
+      tiles.push(['Weight', String(type.weight), type.weightName]);
+      tiles.push([
+        'Line height',
+        type.lineHeightPx ? fmt(type.lineHeightPx) : 'auto',
+        type.lineHeightRatio ? `${round(type.lineHeightRatio)}x` : null,
+      ]);
+    } else {
+      tiles.push(['Width', fmt(data.box.width)]);
+      tiles.push(['Height', fmt(data.box.height)]);
+      if (data.layout.isContainer) {
+        const { rowGap, columnGap } = data.layout;
+        tiles.push(['Gap', fmt(rowGap), rowGap === columnGap ? null : `/ ${fmt(columnGap)}`]);
+      }
+    }
+
+    const wrap = el('div', `hero is-${tiles.length}up`);
+    for (const [label, value, sub] of tiles) {
+      // The unit moves into the label so the number itself gets the width. It
+      // is the same unit for every tile anyway, and a truncated "123.…" is
+      // worse than useless during QA.
+      const [number, unit] = splitUnit(value);
+      const tile = el('div', 'tile');
+
+      const caption = el('span', 'tile-label', label);
+      if (unit) caption.appendChild(el('span', 'tile-unit', unit));
+      tile.appendChild(caption);
+
+      const line = el('span', 'tile-value', number);
+      if (sub) line.appendChild(el('span', 'tile-sub', sub));
+      tile.appendChild(line);
+
+      copyable(tile, value);
+      wrap.appendChild(tile);
+    }
+    return wrap;
+  }
+
+  /** "38.4px" -> ["38.4", "px"]. Anything unitless comes back as-is. */
+  function splitUnit(value) {
+    const match = /^(-?[\d.]+)([a-z%]*)$/i.exec(value);
+    return match ? [match[1], match[2]] : [value, ''];
+  }
+
   DT.card = {
     copyable,
 
@@ -122,22 +176,28 @@
       head.appendChild(unitToggle(opts.onUnitChange));
       card.appendChild(head);
 
+      card.appendChild(heroTiles(data, fmt));
+
       if (opts.measurement) card.appendChild(measurementSection(opts.measurement, fmt));
 
       const type = data.typography;
-      if (type.hasText || type.family) {
+      if (type.showsType) {
         const sec = section('Typography');
         row(sec, 'Font', type.family);
-        row(sec, 'Size', fmt(type.size));
-        row(sec, 'Weight', `${type.weightName} ${type.weight}`);
+        // Size, weight and line height are in the hero tiles when this element
+        // renders text of its own; repeating them here would say it twice.
+        if (!type.hasText) {
+          row(sec, 'Size', fmt(type.size));
+          row(sec, 'Weight', `${type.weightName} ${type.weight}`);
+          row(
+            sec,
+            'Line height',
+            type.lineHeightPx
+              ? `${fmt(type.lineHeightPx)}${type.lineHeightRatio ? `  (${round(type.lineHeightRatio)}x)` : ''}`
+              : 'normal'
+          );
+        }
         if (type.style !== 'normal') row(sec, 'Style', type.style);
-        row(
-          sec,
-          'Line height',
-          type.lineHeightPx
-            ? `${fmt(type.lineHeightPx)}${type.lineHeightRatio ? `  (${round(type.lineHeightRatio)}x)` : ''}`
-            : 'normal'
-        );
         row(
           sec,
           'Letter spacing',
@@ -239,7 +299,9 @@
     node.appendChild(alt);
     node.appendChild(document.createTextNode(' + '));
     node.appendChild(scroll);
-    node.appendChild(document.createTextNode(' walks the DOM. '));
+    node.appendChild(document.createTextNode(' walks the DOM, '));
+    node.appendChild(el('kbd', null, 'U'));
+    node.appendChild(document.createTextNode(' cycles units, '));
     node.appendChild(el('kbd', null, 'Esc'));
     node.appendChild(document.createTextNode(' exits.'));
     return node;
@@ -253,32 +315,46 @@
     return text.length > max ? `${text.slice(0, max - 1)}...` : text;
   }
 
-  // While hovering, the card behaves like a tooltip and follows the cursor.
-  // Once an element is locked, it docks to a top corner instead: a card sitting
-  // next to element A would cover exactly the element you want to measure
-  // against. The corner only flips when the cursor gets close, so it does not
-  // jump around while you work.
-  let dockedLeft = false;
+  // The card is always docked to a top corner, never anchored to the cursor.
+  //
+  // Two earlier rules both made it unreachable: following the cursor at a fixed
+  // offset means the pointer is never inside it, and flipping corners when the
+  // cursor approached meant it jumped away as you reached for it. So the corner
+  // is chosen from the inspected ELEMENT (stable while you move the mouse), and
+  // the card freezes outright once the pointer comes near it.
+  const APPROACH = 48; // freeze the card when the cursor gets this close
+  const RELEASE = 160; // and let it move again only once the cursor is this far
 
-  DT.card.position = function position(card, docked, cursor) {
+  let dockedLeft = false;
+  let frozen = false;
+
+  /** Shortest distance from a point to a rect, 0 when inside. */
+  function distanceTo(rect, point) {
+    const dx = Math.max(rect.left - point.x, 0, point.x - rect.right);
+    const dy = Math.max(rect.top - point.y, 0, point.y - rect.bottom);
+    return Math.hypot(dx, dy);
+  }
+
+  /**
+   * @param {HTMLElement} card
+   * @param {DOMRect|null} subjectRect rect of the element being inspected
+   * @param {{x:number,y:number}} cursor
+   */
+  DT.card.position = function position(card, subjectRect, cursor) {
     const rect = card.getBoundingClientRect();
     const width = rect.width || CARD_WIDTH;
-    const height = rect.height || 200;
     const vw = window.innerWidth;
-    const vh = window.innerHeight;
 
-    if (docked) {
-      if (dockedLeft && cursor.x < width + MARGIN * 3) dockedLeft = false;
-      else if (!dockedLeft && cursor.x > vw - width - MARGIN * 3) dockedLeft = true;
-      return { left: dockedLeft ? MARGIN : vw - width - MARGIN, top: MARGIN };
+    const distance = rect.width ? distanceTo(rect, cursor) : Infinity;
+    if (distance <= APPROACH) frozen = true;
+    else if (distance > RELEASE) frozen = false;
+
+    if (!frozen && subjectRect) {
+      // Sit on the side away from whatever is being inspected.
+      const subjectCentre = (subjectRect.left + subjectRect.right) / 2;
+      dockedLeft = subjectCentre > vw / 2;
     }
 
-    let left = cursor.x + MARGIN;
-    let top = cursor.y + MARGIN;
-    if (left + width > vw - 4) left = cursor.x - width - MARGIN;
-    if (top + height > vh - 4) top = Math.max(4, cursor.y - height - MARGIN);
-    left = Math.max(4, Math.min(left, vw - width - 4));
-    top = Math.max(4, top);
-    return { left, top };
+    return { left: dockedLeft ? MARGIN : vw - width - MARGIN, top: MARGIN };
   };
 })();

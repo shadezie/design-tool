@@ -97,7 +97,7 @@
 .card {
   position: absolute;
   z-index: 3;
-  width: 300px;
+  width: 330px;
   max-height: 82vh;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -147,16 +147,64 @@
   background: var(--bg-soft);
 }
 .units button {
-  padding: 2px 7px;
+  padding: 4px 10px;
   border: 0;
   border-radius: 4px;
   background: none;
   color: var(--muted);
-  font: 500 10px/1.5 var(--mono);
+  font: 500 11px/1.5 var(--mono);
   cursor: pointer;
 }
 .units button:hover { color: var(--text); }
 .units button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
+/* ---------- hero values ---------- */
+
+.hero {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.hero.is-2up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.tile {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.tile-unit {
+  margin-left: 3px;
+  color: #5d646f;
+}
+
+.tile-label {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font: 600 9px/1.4 ui-sans-serif, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tile-value {
+  display: block;
+  color: var(--text);
+  font: 600 18px/1.2 var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-sub {
+  margin-left: 4px;
+  color: var(--muted);
+  font: 400 10px/1.2 var(--mono);
+}
 
 .sec { padding: 10px 12px; border-bottom: 1px solid var(--line); }
 .sec:last-child { border-bottom: 0; }

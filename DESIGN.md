@@ -69,8 +69,8 @@ A 4px base. Used values: 2, 4, 6, 8, 10, 12, 14.
 - Row gap: `8px` between label column and value column.
 - Label column: fixed `88px`, so values align down the whole card regardless of
   label length.
-- Card width: `300px`. Wide enough for `Letter spacing  -0.64px (-2%)`, narrow
-  enough to dock without eating the viewport.
+- Card width: `330px`. Wide enough for `Letter spacing  -0.64px (-2%)` and for
+  a six-figure stat tile, narrow enough to dock without eating the viewport.
 - Card max height: `82vh`, then it scrolls.
 
 ## Radius and depth
@@ -103,6 +103,31 @@ on simple elements, which is most of them.
 `div#hero.card` in mono, coloured by part: tag in `--accent`, id in
 `--accent-b`, classes in `--muted`. Truncated to two classes with a `+n`
 counter. It reads like a selector because that is what it is.
+
+### Stat tiles
+
+The three values you are actually checking, directly under the header, before
+anything else. Which three depends on what the element is:
+
+| Element | Tiles |
+| --- | --- |
+| Renders its own text | `Size` · `Weight` · `Line height` |
+| Flex or grid container | `W` · `H` · `Gap` |
+| Anything else | `W` · `H` |
+
+Value 18px/600 mono in `--text`. Label 9px/600 uppercase `0.08em` in `--muted`.
+Tile is `--bg-soft`, 6px radius, `8px 10px` padding, equal-width grid with an
+8px gutter.
+
+**The unit lives in the label, not the value.** `WIDTH PX` over `1200`, not
+`1200px`. Every tile shares the unit, the toggle in the header already states
+it, and the number needs the width: a truncated `123.…` is worse than useless
+during QA. Copying a tile still copies the full value with its unit.
+
+A qualifier rides after the value at 10px muted: `700 Bold`, `38.4 1.2x`.
+
+When the type trio is on show, those three rows are dropped from the Typography
+section below, so nothing is stated twice.
 
 ### Row
 
@@ -151,9 +176,16 @@ hover. `aria-pressed` carries the state.
 
 ## Behaviour rules
 
-- The card follows the cursor while hovering, and docks to a top corner as soon
-  as anything is locked. It flips corners only when the cursor comes within
-  three margins of it.
+- **The card is always docked to a top corner and never follows the cursor.**
+  A card anchored to the pointer can never be reached, because the pointer is
+  never inside it.
+- **The card dodges the inspected element, not the pointer.** It docks to the
+  side away from whatever is being inspected, which is stable while you move the
+  mouse. A rule that reacts to cursor position makes the card flee as you reach
+  for it.
+- **The card freezes on approach.** Within 48px of the cursor it holds position
+  until the cursor is 160px away again. This is the guarantee that no future
+  positioning rule can reintroduce the dodge.
 - The overlay layer is `pointer-events: none`; only the card opts back in, so
   hovering the page always reaches the page.
 - Everything is fixed-position inside a viewport-clipped layer at

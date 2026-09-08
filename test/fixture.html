@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Fixture</title>
+<style>
+  html { font-size: 62.5%; }
+  body { font-family: Inter, system-ui, sans-serif; font-size: 1.6rem; margin: 0; padding: 40px; background: #f6f7f9; }
+  h1 { font-size: 3.2rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; color: #101418; margin-bottom: 24px; }
+  .grid { display: flex; gap: 24px; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .card { flex: 1; padding: 16px 20px; border: 1px solid #dfe3e8; border-radius: 8px; background: #fbfcfd; }
+  .card p { margin: 8px 0 0; font-size: 1.4rem; line-height: 1.6; color: #5b6472; }
+  .label { font-size: 1.2rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: #4f8cff; }
+  a { display: inline-block; margin-top: 24px; }
+</style></head><body>
+<h1 id="title">Design QA fixture</h1>
+<div class="grid" id="grid">
+  <div class="card" id="c1"><span class="label">Alpha</span><p>First card body text.</p></div>
+  <div class="card" id="c2"><span class="label">Beta</span><p>Second card body text.</p></div>
+</div>
+<a href="https://example.com" id="link">A link that must not navigate</a>
+<p><img id="pic" width="120" height="80" alt="swatch"
+  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='80'%3E%3Crect width='120' height='80' fill='%234f8cff'/%3E%3C/svg%3E"></p>
+</body></html>

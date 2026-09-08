@@ -107,7 +107,8 @@
     renderCard(data, result);
     overlay.showCard(true);
 
-    const { left, top } = card.position(overlay.card, state !== 'armed', cursor);
+    const subjectRect = state === 'armed' ? rectHover : rectA;
+    const { left, top } = card.position(overlay.card, subjectRect, cursor);
     overlay.setCardPosition(left, top);
   }
 
@@ -187,6 +188,13 @@
     cardSignature = '';
   }
 
+  function onCycleUnits() {
+    const next = units.MODES[(units.MODES.indexOf(units.mode) + 1) % units.MODES.length];
+    units.mode = next;
+    cardSignature = '';
+    lastMeasureKey = '';
+  }
+
   function onEscape() {
     if (state === 'lockedAB' || state === 'lockedA') {
       reset();
@@ -219,7 +227,7 @@
 
     overlay.mount();
     setState('armed');
-    unbind = inspect.bind({ onMove, onPick, onWalk, onEscape, onLeave });
+    unbind = inspect.bind({ onMove, onPick, onWalk, onEscape, onLeave, onCycleUnits });
     window.addEventListener('resize', onResize);
     if (!rafId) rafId = requestAnimationFrame(paint);
   }

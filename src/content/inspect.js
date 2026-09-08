@@ -50,7 +50,8 @@
   }
 
   /**
-   * @param {{onMove:Function, onPick:Function, onWalk:Function, onEscape:Function, onLeave:Function}} handlers
+   * @param {{onMove:Function, onPick:Function, onWalk:Function, onEscape:Function,
+   *          onLeave:Function, onCycleUnits:Function}} handlers
    * @returns {Function} unbind
    */
   function bind(handlers) {
@@ -87,6 +88,11 @@
         return;
       }
       if (overlay.ownsEvent(event)) return;
+      if (event.key === 'u' || event.key === 'U') {
+        event.preventDefault();
+        handlers.onCycleUnits();
+        return;
+      }
       if (event.key === '[') {
         event.preventDefault();
         handlers.onWalk(1);
