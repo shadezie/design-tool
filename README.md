@@ -24,11 +24,15 @@ refresh the page you are testing.
 | Click the toolbar icon, or `Alt+Shift+D` | Arms inspect mode (badge reads `ON`) |
 | Hover | Card shows typography, spacing, layout, fill for whatever is under the cursor |
 | | The card stays docked in a top corner, on the side away from what you are inspecting |
+| Drag the grip | Places the card anywhere. Double-click the grip to re-dock it |
+| Drag the corner | Resizes the card |
+| Sun / moon icon | Switches the card between light and dark |
 | Click an element | Locks it as **A** (blue) |
 | Hover another element | Live measurement between A and it |
 | Click again | Freezes it as **B** (amber) |
 | Click a third element | Starts a new measurement from that element |
 | `Alt` + scroll, or `[` / `]` | Walks up and down the DOM from the current element |
+| Hold `Cmd` / `Ctrl` while hovering | Reaches past overlays to the most specific element under the cursor |
 | `U` | Cycles px / rem / em without reaching for the card |
 | Click any value in the card | Copies it |
 | `px` / `rem` / `em` in the card header | Converts every number at once. Remembered between pages |
@@ -36,6 +40,31 @@ refresh the page you are testing.
 
 While inspect mode is armed the page does not receive clicks, so you can measure
 a nav link without navigating away.
+
+## Reaching the element you actually want
+
+Most card grids are built with a full-bleed click target: an `<a>` or `<span>`
+with `position: absolute; inset: 0` stretched over the whole card. It sits on
+top of the heading, the date and everything else, so a plain hover lands on it
+instead of on what you are looking at.
+
+- An overlay that paints nothing (`opacity: 0`, `visibility: hidden`) is skipped
+  outright. You are never pointing at something invisible.
+- One that does paint, like a faint scrim, is still the topmost thing, so
+  **hold `Cmd` (macOS) or `Ctrl`** to reach the most specific element under the
+  cursor instead. Same idea as selecting through a group in Figma.
+- `Alt` + scroll (or `[` / `]`) then walks up and down from wherever you landed.
+
+## The card is a panel
+
+Position, size and theme persist across pages.
+
+- **Grip** (top left): drag to place the card anywhere on screen, which is what
+  you want on a wide display. Double-click it to hand the card back to automatic
+  docking. The grip turns blue while the card is pinned.
+- **Corner handle**: drag to resize, 260 to 680 wide.
+- **Sun / moon**: light or dark. The highlights and dimension lines on the page
+  never change colour, since they have to read on top of any site.
 
 ## What the measurements mean
 

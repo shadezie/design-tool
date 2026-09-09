@@ -8,10 +8,30 @@
  */
 (() => {
   const DT = (window.__designtool = window.__designtool || {});
-  const { units, styles, spacingBox } = DT;
+  const { units, styles, spacingBox, prefs, overlay } = DT;
 
   const MARGIN = 14;
   const CARD_WIDTH = 330;
+
+  const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  const DEEP_KEY = IS_MAC ? 'Cmd' : 'Ctrl';
+
+  const ICONS = {
+    grip:
+      '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+      '<circle cx="6" cy="3" r="1.35"/><circle cx="10" cy="3" r="1.35"/>' +
+      '<circle cx="6" cy="8" r="1.35"/><circle cx="10" cy="8" r="1.35"/>' +
+      '<circle cx="6" cy="13" r="1.35"/><circle cx="10" cy="13" r="1.35"/></svg>',
+    moon:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+    sun:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2' +
+      'M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>',
+  };
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -84,6 +104,38 @@
     if (identity.classes) line.appendChild(el('span', 't-class', identity.classes));
     if (identity.extraClasses) line.appendChild(el('span', 't-class', ` +${identity.extraClasses}`));
     return line;
+  }
+
+  function iconButton(className, icon, title, onClick) {
+    const button = el('button', `icon-btn ${className}`);
+    button.type = 'button';
+    button.title = title;
+    button.setAttribute('aria-label', title);
+    // Static markup from the ICONS table above, never page content.
+    button.innerHTML = icon;
+    if (onClick) {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        onClick();
+      });
+    }
+    return button;
+  }
+
+  function themeToggle(onChange) {
+    const light = prefs.get('theme') === 'light';
+    return iconButton(
+      'theme',
+      light ? ICONS.moon : ICONS.sun,
+      light ? 'Switch to dark' : 'Switch to light',
+      () => {
+        const next = prefs.get('theme') === 'light' ? 'dark' : 'light';
+        prefs.set('theme', next);
+        overlay.setTheme(next);
+        onChange();
+      }
+    );
   }
 
   function unitToggle(onChange) {
@@ -172,9 +224,13 @@
       card.textContent = '';
 
       const head = el('div', 'card-head');
+      head.appendChild(dragGrip(card, opts.onUnitChange));
       head.appendChild(identityLine(data.identity));
+      head.appendChild(themeToggle(opts.onUnitChange));
       head.appendChild(unitToggle(opts.onUnitChange));
       card.appendChild(head);
+
+      card.classList.toggle('is-pinned', !!pin);
 
       card.appendChild(heroTiles(data, fmt));
 
@@ -303,7 +359,9 @@
     node.appendChild(el('kbd', null, 'U'));
     node.appendChild(document.createTextNode(' cycles units, '));
     node.appendChild(el('kbd', null, 'Esc'));
-    node.appendChild(document.createTextNode(' exits.'));
+    node.appendChild(document.createTextNode(' exits. Hold '));
+    node.appendChild(el('kbd', null, DEEP_KEY));
+    node.appendChild(document.createTextNode(' to reach past overlays into the deepest layer.'));
     return node;
   }
 
@@ -315,18 +373,21 @@
     return text.length > max ? `${text.slice(0, max - 1)}...` : text;
   }
 
-  // The card is always docked to a top corner, never anchored to the cursor.
+  // Positioning.
   //
-  // Two earlier rules both made it unreachable: following the cursor at a fixed
-  // offset means the pointer is never inside it, and flipping corners when the
-  // cursor approached meant it jumped away as you reached for it. So the corner
-  // is chosen from the inspected ELEMENT (stable while you move the mouse), and
-  // the card freezes outright once the pointer comes near it.
+  // The card never follows the cursor. Two earlier rules both made it
+  // unreachable: following the cursor at a fixed offset means the pointer is
+  // never inside it, and flipping corners when the cursor approached meant it
+  // jumped away as you reached for it. So the corner is chosen from the
+  // inspected ELEMENT (stable while you move the mouse), the card freezes once
+  // the pointer comes near, and a pinned card does not move at all.
   const APPROACH = 48; // freeze the card when the cursor gets this close
   const RELEASE = 160; // and let it move again only once the cursor is this far
 
   let dockedLeft = false;
   let frozen = false;
+  let pin = null;
+  let drag = null;
 
   /** Shortest distance from a point to a rect, 0 when inside. */
   function distanceTo(rect, point) {
@@ -334,6 +395,117 @@
     const dy = Math.max(rect.top - point.y, 0, point.y - rect.bottom);
     return Math.hypot(dx, dy);
   }
+
+  /** Keep at least a corner of the card on screen whatever the viewport does. */
+  function clamp(left, top, width, height) {
+    return {
+      left: Math.max(4, Math.min(left, window.innerWidth - width - 4)),
+      top: Math.max(4, Math.min(top, window.innerHeight - Math.min(height, 120) - 4)),
+    };
+  }
+
+  /**
+   * The grip: drag to place the card anywhere, double-click to hand it back to
+   * automatic docking. On a wide screen there is usually dead space that beats
+   * any corner the tool could pick.
+   */
+  function dragGrip(card, onChange) {
+    const grip = iconButton(
+      'grip',
+      ICONS.grip,
+      pin ? 'Drag to move, double-click to re-dock' : 'Drag to place the card'
+    );
+
+    grip.addEventListener('mousedown', (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = card.getBoundingClientRect();
+      drag = { dx: event.clientX - rect.left, dy: event.clientY - rect.top };
+      overlay.dragging = true;
+      window.addEventListener('mousemove', onDrag, true);
+      window.addEventListener('mouseup', endDrag, true);
+    });
+
+    grip.addEventListener('dblclick', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      pin = null;
+      prefs.set('pin', null);
+      onChange();
+    });
+
+    function onDrag(event) {
+      if (!drag) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = card.getBoundingClientRect();
+      pin = clamp(event.clientX - drag.dx, event.clientY - drag.dy, rect.width, rect.height);
+    }
+
+    function endDrag(event) {
+      event.stopPropagation();
+      drag = null;
+      overlay.dragging = false;
+      window.removeEventListener('mousemove', onDrag, true);
+      window.removeEventListener('mouseup', endDrag, true);
+      if (pin) prefs.set('pin', pin);
+      onChange();
+    }
+
+    return grip;
+  }
+
+  const MIN_W = 260;
+  const MAX_W = 680;
+  const MIN_H = 160;
+
+  /**
+   * Wire the resize handle. Called once per activation, since the handle lives
+   * in the overlay rather than in the card's re-rendered contents.
+   */
+  DT.card.attachResizer = function attachResizer(handle, card) {
+    let from = null;
+
+    handle.addEventListener('mousedown', (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = card.getBoundingClientRect();
+      from = { x: event.clientX, y: event.clientY, width: rect.width, height: rect.height };
+      overlay.dragging = true;
+      window.addEventListener('mousemove', onResize, true);
+      window.addEventListener('mouseup', endResize, true);
+    });
+
+    function onResize(event) {
+      if (!from) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const width = clampRange(from.width + (event.clientX - from.x), MIN_W, MAX_W);
+      const height = Math.max(MIN_H, from.height + (event.clientY - from.y));
+      card.style.width = `${Math.round(width)}px`;
+      card.style.height = `${Math.round(height)}px`;
+    }
+
+    function endResize(event) {
+      event.stopPropagation();
+      from = null;
+      overlay.dragging = false;
+      window.removeEventListener('mousemove', onResize, true);
+      window.removeEventListener('mouseup', endResize, true);
+    }
+  };
+
+  function clampRange(value, min, max) {
+    return Math.max(min, Math.min(value, max));
+  }
+
+  /** Adopt the stored pin. Call after prefs.load(). */
+  DT.card.adopt = function adopt() {
+    pin = prefs.get('pin');
+    frozen = false;
+  };
 
   /**
    * @param {HTMLElement} card
@@ -344,6 +516,8 @@
     const rect = card.getBoundingClientRect();
     const width = rect.width || CARD_WIDTH;
     const vw = window.innerWidth;
+
+    if (pin) return clamp(pin.left, pin.top, width, rect.height);
 
     const distance = rect.width ? distanceTo(rect, cursor) : Infinity;
     if (distance <= APPROACH) frozen = true;

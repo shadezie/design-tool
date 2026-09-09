@@ -21,6 +21,11 @@ Everything here is defined as CSS custom properties on `.layer` in
 
 ## Colour
 
+Two token groups, and they are not interchangeable. The **page overlay**
+(highlights, dimension lines, badges) is never themed: it has to read on top of
+whatever the site being reviewed looks like. The **card** is themed, and light
+mode only reassigns its surface tokens.
+
 | Token | Value | Use |
 | --- | --- | --- |
 | `--bg` | `#14161A` | Card surface |
@@ -28,9 +33,25 @@ Everything here is defined as CSS custom properties on `.layer` in
 | `--line` | `rgba(255,255,255,0.10)` | Section dividers, card border |
 | `--text` | `#E6E8EB` | Values |
 | `--muted` | `#8B929C` | Labels, section titles, zero values |
-| `--accent` | `#4F8CFF` | Element A, hover highlight, active unit |
-| `--accent-b` | `#FFB020` | Element B |
-| `--measure` | `#FF3B6B` | Dimension lines and their labels |
+| `--accent` | `#4F8CFF` | Active unit, tag names, hover controls |
+| `--hl-a` | `#4F8CFF` | Element A and the hover highlight (never themed) |
+| `--hl-b` | `#FFB020` | Element B (never themed) |
+| `--measure` | `#FF3B6B` | Dimension lines and their labels (never themed) |
+
+Light mode reassigns the card tokens only:
+
+| Token | Light value |
+| --- | --- |
+| `--bg` | `#FFFFFF` |
+| `--bg-soft` | `#F2F4F7` |
+| `--line` | `rgba(0,0,0,0.10)` |
+| `--text` | `#14181D` |
+| `--muted` | `#6B7280` |
+| `--accent` | `#2F6FE4` (darkened for contrast on white) |
+
+The spacing-box ring tints are tokens too (`--tint-margin`, `--tint-border`,
+`--tint-padding`, `--tint-content`) because a 7% wash that reads on near-black
+is invisible on white. Light mode roughly doubles them.
 
 Three signal colours, three roles, no overlap:
 
@@ -154,6 +175,24 @@ a single `W x H` line gets long enough to wrap and shove the rings around.
 When the element is a flex or grid container, its `gap` is stated directly under
 the diagram. Gap versus padding is the confusion this panel exists to end.
 
+### Header controls
+
+Left to right: drag grip, identity, theme toggle, unit control. 22x22 icon
+buttons, 14px stroked SVG at `--muted`, going to `--text` on a `--flash`
+ground. The grip turns `--accent` while the card is pinned, which is the only
+indication the card is no longer docking itself.
+
+### Resize handle
+
+A 16x16 corner chevron that rides on the card's bottom-right corner but lives
+*outside* the card in the overlay layer, so it never scrolls away with the
+content and never collides with the scrollbar. 2px `--muted` borders, going
+`--accent` on hover. Min 260x160, max 680 wide.
+
+The card's max height is recomputed from its top edge every frame. Pinned low on
+a tall page it would otherwise run past the viewport and take its own resize
+handle out of reach.
+
 ### Highlights
 
 1px solid outline plus a low-alpha fill. Hover is dashed, locked is solid. The
@@ -186,6 +225,12 @@ hover. `aria-pressed` carries the state.
 - **The card freezes on approach.** Within 48px of the cursor it holds position
   until the cursor is 160px away again. This is the guarantee that no future
   positioning rule can reintroduce the dodge.
+- **A pinned card does not move at all.** Dragging the grip pins it;
+  double-clicking the grip hands it back to automatic docking. Position and size
+  persist across pages.
+- **A drag that starts on the card never selects an element.** Releasing a drag
+  or resize outside the card fires a click at the page; the press origin is
+  tracked so that click is swallowed.
 - The overlay layer is `pointer-events: none`; only the card opts back in, so
   hovering the page always reaches the page.
 - Everything is fixed-position inside a viewport-clipped layer at

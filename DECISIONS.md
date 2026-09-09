@@ -154,6 +154,52 @@ Every element inherits a font, so v1 showed a full Typography section on images
 and layout containers. It now appears only for elements that render their own
 text, plus form controls that render text from a value.
 
+## v1.2
+
+### Invisible overlays were stealing every hover
+
+Reported from a real site: hovering a card selected a `span.absolute.inset-0`
+with `opacity: 0` rather than the heading or the date under it. Full-bleed click
+targets are how most card grids are built, and the topmost painted element is
+always that overlay.
+
+Two changes. An element that paints nothing (`opacity: 0`, `visibility: hidden`)
+is now skipped outright: you are never pointing at something invisible. And
+holding Cmd (macOS) or Ctrl reaches past whatever covers the target, the way
+Figma lets you select through a group.
+
+The deep pick is **smallest box wins, deeper node breaks the tie**. DOM depth
+alone is not enough, which cost a round of debugging: a full-bleed scrim is
+usually a *sibling* of the heading it covers, so both sit at the same depth and
+paint order hands you the scrim.
+
+### The card is a panel now, not just a readout
+
+Three asks that are really one: on a large screen there is dead space, and the
+tool should let you put the panel in it and size it to taste.
+
+- **Drag by the grip** to place the card anywhere; double-click the grip to hand
+  it back to automatic docking.
+- **Resize from the corner**, 260-680 wide.
+- **Light and dark**, since QA on a light site with a black panel next to it
+  makes colour judgement harder.
+
+All three persist across pages in one storage key.
+
+The resize handle lives in the overlay layer rather than inside the card. Native
+`resize: both` put its grip under the scrollbar and was unreliable to hit, and a
+handle inside a scrolling card scrolls away with the content.
+
+### Two bugs the new tests found
+
+A drag or resize released outside the card fired a click at the page, which
+locked whatever was under the pointer. The press origin is now tracked, so a
+click whose press started on our own UI is swallowed.
+
+A card pinned low on the page ran past the bottom of the viewport, putting its
+own resize handle out of reach. Max height is now computed from the card's top
+edge every frame.
+
 ## Open questions for v2
 
 - Cross-frame measurement (element in the page vs element inside an iframe).

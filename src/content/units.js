@@ -7,8 +7,8 @@
  */
 (() => {
   const DT = (window.__designtool = window.__designtool || {});
+  const { prefs } = DT;
 
-  const STORAGE_KEY = 'designtool.unit';
   const MODES = ['px', 'rem', 'em'];
 
   let mode = 'px';
@@ -30,12 +30,7 @@
     set mode(next) {
       if (!MODES.includes(next)) return;
       mode = next;
-      try {
-        chrome.storage?.local?.set({ [STORAGE_KEY]: next });
-      } catch {
-        // Storage is unavailable in some sandboxed frames; the mode still
-        // works for this session.
-      }
+      prefs.set('unit', next);
     },
 
     get rootFontSize() {
@@ -49,13 +44,10 @@
       return rootFontSize;
     },
 
-    async loadMode() {
-      try {
-        const stored = await chrome.storage?.local?.get(STORAGE_KEY);
-        if (stored && MODES.includes(stored[STORAGE_KEY])) mode = stored[STORAGE_KEY];
-      } catch {
-        // Keep the default.
-      }
+    /** Adopt the stored unit. Call after prefs.load(). */
+    adopt() {
+      const stored = prefs.get('unit');
+      if (MODES.includes(stored)) mode = stored;
       return mode;
     },
 

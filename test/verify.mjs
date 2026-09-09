@@ -65,6 +65,52 @@ const pic = await page.locator('#pic').boundingBox();
 await glide({ x: pic.x + 40, y: pic.y + 30 });
 await page.screenshot({ path: `${OUT}/tiles-image.png` });
 
+// ---- picking past overlays -----------------------------------------------
+// Sites cover whole cards with a click target. An invisible one (opacity 0)
+// must never win a hover; a painted one must be reachable past with the
+// modifier. Assert on the highlight itself: if the cover is picked, the whole
+// tile is tinted, and a pixel well below the heading changes.
+
+const probe = (x, y) => page.screenshot({ clip: { x, y, width: 1, height: 1 } });
+const park = () => glide({ x: 200, y: 79 }); // the h1, far from the tiles
+
+async function tileProbe(id) {
+  const box = await page.locator(id).boundingBox();
+  return { box, at: { x: box.x + 20, y: box.y + box.height - 20 } };
+}
+
+const plain = await tileProbe('#tile-plain');
+const scrim = await tileProbe('#tile-scrim');
+
+await park();
+const plainBase = await probe(plain.at.x, plain.at.y);
+const scrimBase = await probe(scrim.at.x, scrim.at.y);
+
+const hPlain = await page.locator('#h-plain').boundingBox();
+await glide({ x: hPlain.x + 60, y: hPlain.y + 12 });
+check(
+  'an opacity-0 overlay never wins the hover',
+  plainBase.equals(await probe(plain.at.x, plain.at.y))
+);
+
+const hScrim = await page.locator('#h-scrim').boundingBox();
+await glide({ x: hScrim.x + 60, y: hScrim.y + 12 });
+check(
+  'a painted scrim is picked by default',
+  !scrimBase.equals(await probe(scrim.at.x, scrim.at.y))
+);
+
+await page.keyboard.down('Control');
+await page.mouse.move(hScrim.x + 61, hScrim.y + 12);
+await page.waitForTimeout(300);
+check(
+  'the modifier reaches the deepest layer under the cursor',
+  scrimBase.equals(await probe(scrim.at.x, scrim.at.y))
+);
+await page.screenshot({ path: `${OUT}/deep-select.png` });
+await page.keyboard.up('Control');
+await page.waitForTimeout(200);
+
 // ---- the approach test ---------------------------------------------------
 // Lock an element on the left, so the card docks to the right.
 const c1 = await page.locator('#c1').boundingBox();
@@ -79,8 +125,9 @@ await glide(target, 30);
 // Probe single pixels. Two 1x1 screenshots of the same colour encode to
 // identical bytes, so equality against a known page-background pixel says
 // whether the card is at that spot, with no image decoding needed.
-const probe = (x, y) => page.screenshot({ clip: { x, y, width: 1, height: 1 } });
-const pageGround = await probe(VW - 500, 420);
+// Empty canvas below the content, so this stays page background as the
+// fixture grows.
+const pageGround = await probe(30, 706);
 check('card is still docked right after the approach', !pageGround.equals(await probe(VW - 160, 30)));
 check('card did not flee to the left', pageGround.equals(await probe(30, 30)));
 
@@ -99,9 +146,64 @@ await page.waitForTimeout(300);
 const afterKey = await page.screenshot({ clip: { x: VW - 320, y: 0, width: 320, height: 400 } });
 check('U cycles units', !beforeKey.equals(afterKey));
 
-// ---- measurement ---------------------------------------------------------
-await page.keyboard.press('Escape');
+// ---- theme, drag, resize -------------------------------------------------
+// Every check here compares against the card's own header colour rather than
+// the page, because a locked element tints the page and would poison the probe.
+await page.keyboard.press('Escape'); // clear any A/B lock
 await page.waitForTimeout(200);
+
+const DOCK_LEFT = VW - 330 - 14; // card width 330, MARGIN 14
+const headerY = 34;
+
+const darkCard = await probe(DOCK_LEFT + 6, headerY);
+await glide({ x: VW - 154, y: headerY }); // the theme button
+await page.mouse.click(VW - 154, headerY);
+await page.waitForTimeout(350);
+const surface = await probe(DOCK_LEFT + 6, headerY);
+check('theme toggle repaints the card', !darkCard.equals(surface));
+await page.screenshot({ path: `${OUT}/theme-light.png` });
+
+// Drag the card by its grip to a spot a wide-screen user would pick.
+const grip = { x: VW - 321, y: headerY };
+const dropped = { x: 520, y: 300 };
+const pinned = { left: dropped.x - (grip.x - DOCK_LEFT), top: dropped.y - (headerY - 14) };
+
+await glide(grip);
+await page.mouse.down();
+await page.mouse.move(dropped.x, dropped.y, { steps: 20 });
+await page.mouse.up();
+await page.waitForTimeout(350);
+check('card moved to where it was dropped', surface.equals(await probe(pinned.left + 6, pinned.top + 20)));
+check('card left the dock', !surface.equals(await probe(DOCK_LEFT + 6, headerY)));
+await page.screenshot({ path: `${OUT}/dragged.png` });
+
+// Resize from the bottom-right corner. Find the bottom edge by probing down the
+// card's own left edge until the page shows through.
+let bottom = pinned.top + 40;
+for (let y = bottom; y < 718; y += 6) {
+  if (!surface.equals(await probe(pinned.left + 6, y))) break;
+  bottom = y;
+}
+const corner = { x: pinned.left + 322, y: bottom - 4 };
+// Inside the hero row's right padding once the card is wider: plain card
+// background, clear of the unit control and of any value text.
+const grew = { x: pinned.left + 458, y: pinned.top + 100 };
+check('the card is not that wide yet', !surface.equals(await probe(grew.x, grew.y)));
+
+await page.mouse.move(corner.x, corner.y);
+await page.mouse.down();
+await page.mouse.move(corner.x + 140, corner.y - 40, { steps: 12 });
+await page.mouse.up();
+await page.waitForTimeout(350);
+check('card resizes from its corner', surface.equals(await probe(grew.x, grew.y)));
+await page.screenshot({ path: `${OUT}/resized.png` });
+
+// Double-clicking the grip hands the card back to automatic docking.
+await page.mouse.dblclick(pinned.left + 22, pinned.top + 20);
+await page.waitForTimeout(400);
+check('double-click on the grip re-docks the card', !surface.equals(await probe(pinned.left + 6, pinned.top + 20)));
+
+// ---- measurement ---------------------------------------------------------
 await page.keyboard.press('u'); // back to px for a readable screenshot
 await page.keyboard.press('u');
 await page.waitForTimeout(200);

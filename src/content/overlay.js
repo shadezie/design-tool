@@ -8,6 +8,7 @@
  */
 (() => {
   const DT = (window.__designtool = window.__designtool || {});
+  const { prefs } = DT;
 
   const HOST_ID = 'designtool-root';
   const MAX_Z = '2147483647';
@@ -16,6 +17,8 @@
   let root = null;
   let layer = null;
   let card = null;
+  let resizer = null;
+  let sizeWatcher = null;
   const highlights = new Map();
   let measureNodes = [];
 
@@ -40,6 +43,13 @@
     get card() {
       return card;
     },
+
+    get resizer() {
+      return resizer;
+    },
+
+    /** Set while the user is dragging the card, so hover tracking holds still. */
+    dragging: false,
 
     get shadowRoot() {
       return root;
@@ -77,7 +87,34 @@
 
       card = el('div', 'card');
       card.style.display = 'none';
+      const size = prefs.get('size');
+      if (size) {
+        card.style.width = `${size.width}px`;
+        card.style.height = `${size.height}px`;
+      }
       layer.appendChild(card);
+
+      // The card carries `resize: both`, so the browser writes inline width and
+      // height when the user drags the corner. That inline style is the signal
+      // that a size was chosen deliberately, rather than the card just growing
+      // with its content.
+      if (typeof ResizeObserver === 'function') {
+        sizeWatcher = new ResizeObserver(() => {
+          if (!card?.style.width) return;
+          prefs.set('size', {
+            width: Math.round(parseFloat(card.style.width)),
+            height: Math.round(parseFloat(card.style.height)),
+          });
+        });
+        sizeWatcher.observe(card);
+      }
+
+      overlay.setTheme(prefs.get('theme'));
+
+      resizer = el('div', 'resizer');
+      resizer.style.display = 'none';
+      resizer.title = 'Drag to resize';
+      layer.appendChild(resizer);
 
       makeHighlight('hover');
       makeHighlight('a');
@@ -86,9 +123,16 @@
       document.documentElement.appendChild(host);
     },
 
+    setTheme(theme) {
+      layer?.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+    },
+
     unmount() {
+      sizeWatcher?.disconnect();
+      sizeWatcher = null;
+      overlay.dragging = false;
       host?.remove();
-      host = root = layer = card = null;
+      host = root = layer = card = resizer = null;
       highlights.clear();
       measureNodes = [];
     },
@@ -142,10 +186,20 @@
 
     setCardPosition(left, top) {
       card.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+      // Keep the card inside the viewport from wherever its top edge sits.
+      // Pinned low on a page it would otherwise run off the bottom, taking its
+      // resize corner out of reach.
+      card.style.maxHeight = `${Math.max(160, Math.round(window.innerHeight - top - 10))}px`;
+
+      const rect = card.getBoundingClientRect();
+      resizer.style.transform = `translate(${Math.round(rect.right - 16)}px, ${Math.round(
+        rect.bottom - 16
+      )}px)`;
     },
 
     showCard(show) {
       card.style.display = show ? 'block' : 'none';
+      resizer.style.display = show ? 'block' : 'none';
     },
   };
 

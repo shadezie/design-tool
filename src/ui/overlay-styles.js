@@ -4,6 +4,10 @@
  * It lives in JS rather than a .css file because it is injected into a closed
  * shadow root: a manifest "css" entry would land in the host page instead, and
  * fetching a stylesheet at runtime trips strict CSP on sites like GitHub.
+ *
+ * Two token groups. The page overlay (highlights, dimension lines) is never
+ * themed: it has to read on top of whatever the site looks like. The card is
+ * themed, and light mode only reassigns its surface tokens.
  */
 (() => {
   const DT = (window.__designtool = window.__designtool || {});
@@ -16,17 +20,48 @@
 .layer {
   position: fixed;
   inset: 0;
+  overflow: hidden;
   pointer-events: none;
   font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* page overlay, never themed */
+  --hl-a: #4f8cff;
+  --hl-b: #ffb020;
+  --measure: #ff3b6b;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* card surface, dark */
   --bg: #14161a;
   --bg-soft: #1c1f25;
   --line: rgba(255, 255, 255, 0.10);
   --text: #e6e8eb;
   --muted: #8b929c;
   --accent: #4f8cff;
-  --accent-b: #ffb020;
-  --measure: #ff3b6b;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --zero: #565d68;
+  --flash: rgba(255, 255, 255, 0.07);
+  --ring-line: rgba(255, 255, 255, 0.14);
+  --tint-margin: rgba(255, 176, 32, 0.07);
+  --tint-border: rgba(140, 150, 165, 0.08);
+  --tint-padding: rgba(79, 255, 176, 0.07);
+  --tint-content: rgba(79, 140, 255, 0.12);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.layer[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-soft: #f2f4f7;
+  --line: rgba(0, 0, 0, 0.10);
+  --text: #14181d;
+  --muted: #6b7280;
+  --accent: #2f6fe4;
+  --zero: #b6bcc5;
+  --flash: rgba(0, 0, 0, 0.06);
+  --ring-line: rgba(0, 0, 0, 0.14);
+  --tint-margin: rgba(255, 159, 10, 0.14);
+  --tint-border: rgba(120, 130, 145, 0.12);
+  --tint-padding: rgba(16, 185, 129, 0.12);
+  --tint-content: rgba(47, 111, 228, 0.13);
+  --shadow: 0 12px 32px rgba(20, 24, 32, 0.18);
 }
 
 /* ---------- element highlights ---------- */
@@ -35,12 +70,12 @@
   position: absolute;
   z-index: 1;
   pointer-events: none;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--hl-a);
   background: rgba(79, 140, 255, 0.10);
   border-radius: 1px;
 }
-.hl.is-a { border-color: var(--accent); background: rgba(79, 140, 255, 0.14); }
-.hl.is-b { border-color: var(--accent-b); background: rgba(255, 176, 32, 0.14); }
+.hl.is-a { border-color: var(--hl-a); background: rgba(79, 140, 255, 0.14); }
+.hl.is-b { border-color: var(--hl-b); background: rgba(255, 176, 32, 0.14); }
 .hl.is-hover { border-style: dashed; background: rgba(79, 140, 255, 0.07); }
 
 .hl-tag {
@@ -49,12 +84,12 @@
   left: -1px;
   padding: 2px 6px;
   border-radius: 3px 3px 0 0;
-  background: var(--accent);
+  background: var(--hl-a);
   color: #fff;
   font: 500 10px/1.4 var(--mono);
   white-space: nowrap;
 }
-.hl.is-b .hl-tag { background: var(--accent-b); color: #241a00; }
+.hl.is-b .hl-tag { background: var(--hl-b); color: #241a00; }
 
 /* ---------- measurement lines ---------- */
 
@@ -98,21 +133,23 @@
   position: absolute;
   z-index: 3;
   width: 330px;
-  max-height: 82vh;
-  overflow-y: auto;
+  min-width: 260px;
+  max-width: 640px;
+  min-height: 160px;
+  overflow: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow);
   font-size: 12px;
   line-height: 1.5;
   scrollbar-width: thin;
 }
-.card::-webkit-scrollbar { width: 8px; }
-.card::-webkit-scrollbar-thumb { background: #2c313a; border-radius: 4px; }
+.card::-webkit-scrollbar { width: 8px; height: 8px; }
+.card::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
 
 .card-head {
   position: sticky;
@@ -120,11 +157,32 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 7px;
+  padding: 9px 12px;
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
+
+.icon-btn {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--flash); color: var(--text); }
+.icon-btn svg { width: 14px; height: 14px; display: block; }
+
+.grip { cursor: grab; }
+.grip:active { cursor: grabbing; }
+.card.is-pinned .grip { color: var(--accent); }
 
 .card-title {
   flex: 1;
@@ -136,7 +194,8 @@
   text-overflow: ellipsis;
 }
 .card-title .t-tag { color: var(--accent); }
-.card-title .t-id { color: var(--accent-b); }
+.card-title .t-id { color: #d18b00; }
+.layer[data-theme="light"] .card-title .t-id { color: #9a6500; }
 .card-title .t-class { color: var(--muted); }
 
 .units {
@@ -158,6 +217,29 @@
 .units button:hover { color: var(--text); }
 .units button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 
+/* The resize handle rides outside the card's scroll area, so it stays put no
+   matter how far the card is scrolled and never collides with the scrollbar. */
+.resizer {
+  position: absolute;
+  z-index: 4;
+  width: 16px;
+  height: 16px;
+  pointer-events: auto;
+  cursor: nwse-resize;
+}
+.resizer::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  border-bottom-right-radius: 3px;
+}
+.resizer:hover::after { border-color: var(--accent); }
+
 /* ---------- hero values ---------- */
 
 .hero {
@@ -178,7 +260,7 @@
 
 .tile-unit {
   margin-left: 3px;
-  color: #5d646f;
+  color: var(--zero);
 }
 
 .tile-label {
@@ -234,7 +316,7 @@
 }
 
 .copy { cursor: copy; border-radius: 3px; }
-.copy:hover { background: rgba(255, 255, 255, 0.07); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.07); }
+.copy:hover { background: var(--flash); box-shadow: 0 0 0 3px var(--flash); }
 .copy.is-copied { background: var(--accent); color: #fff; box-shadow: 0 0 0 3px var(--accent); }
 
 .swatch {
@@ -242,7 +324,7 @@
   width: 9px;
   height: 9px;
   margin-right: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--ring-line);
   border-radius: 2px;
   vertical-align: baseline;
 }
@@ -251,30 +333,27 @@
   padding: 8px 12px;
   color: var(--muted);
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.6;
   background: var(--bg-soft);
 }
 .hint kbd {
   padding: 1px 4px;
   border: 1px solid var(--line);
   border-radius: 3px;
-  background: #262b33;
+  background: var(--bg);
   color: var(--text);
   font: 500 10px/1.4 var(--mono);
 }
 
 /* ---------- spacing box ---------- */
 
-.sbox { --ring: rgba(255, 255, 255, 0.14); }
-
 .ring {
   position: relative;
   padding: 14px 2px 3px;
-  border: 1px dashed var(--ring);
+  border: 1px dashed var(--ring-line);
   border-radius: 5px;
   text-align: center;
 }
-.ring + .ring { margin: 0; }
 
 .ring-label {
   position: absolute;
@@ -286,9 +365,9 @@
   text-transform: uppercase;
 }
 
-.ring-margin { background: rgba(255, 176, 32, 0.07); }
-.ring-border { background: rgba(140, 150, 165, 0.08); }
-.ring-padding { background: rgba(79, 255, 176, 0.07); }
+.ring-margin { background: var(--tint-margin); }
+.ring-border { background: var(--tint-border); }
+.ring-padding { background: var(--tint-padding); }
 
 .ring-mid {
   display: flex;
@@ -303,14 +382,14 @@
   font: 400 10px/1.5 var(--mono);
   color: var(--text);
 }
-.sv.is-zero { color: #565d68; }
+.sv.is-zero { color: var(--zero); }
 .sv.is-side-l, .sv.is-side-r { flex: none; }
 
 .content-box {
   padding: 6px 4px;
-  border: 1px solid var(--ring);
+  border: 1px solid var(--ring-line);
   border-radius: 4px;
-  background: rgba(79, 140, 255, 0.12);
+  background: var(--tint-content);
 }
 
 .dim {

@@ -10,7 +10,7 @@
   if (DT.booted) return;
   DT.booted = true;
 
-  const { units, styles, overlay, card, inspect, measure } = DT;
+  const { units, styles, overlay, card, inspect, measure, prefs } = DT;
 
   let state = 'idle';
   let unbind = null;
@@ -141,9 +141,9 @@
 
   // ------------------------------------------------------------ interactions
 
-  function onMove(x, y) {
+  function onMove(x, y, deep) {
     cursor = { x, y };
-    const found = inspect.pick(x, y);
+    const found = inspect.pick(x, y, deep);
     if (found && found !== hoverEl) hoverEl = found;
   }
 
@@ -222,10 +222,13 @@
 
   async function arm() {
     if (state !== 'idle') return;
-    await units.loadMode();
+    await prefs.load();
+    units.adopt();
+    card.adopt();
     units.refreshRoot();
 
     overlay.mount();
+    card.attachResizer(overlay.resizer, overlay.card);
     setState('armed');
     unbind = inspect.bind({ onMove, onPick, onWalk, onEscape, onLeave, onCycleUnits });
     window.addEventListener('resize', onResize);
