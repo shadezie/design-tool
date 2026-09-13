@@ -237,6 +237,23 @@ hover. `aria-pressed` carries the state.
   `z-index: 2147483647`, and the host element is re-attached every frame in case
   the page rewrites the DOM.
 
+## Icon
+
+`src/icons/logo.svg` is the source of truth; the PNGs Chrome loads are rendered
+from it (see `Tests` in the README for the renderer). The mark is three corner
+brackets around a cursor, on `#2B4BF5`.
+
+`logo-small.svg` is the same mark tuned for 16px: thicker bracket strokes, less
+padding, and a blue keyline around the cursor to hold it apart from the top-left
+bracket. The faithful mark merges into a blur at that size. 16px uses the tuned
+mark, 32/48/128 use the full one.
+
+To regenerate after editing either SVG:
+
+```bash
+node test/render-icons.mjs
+```
+
 ## Adding to the UI
 
 Before adding a row, ask whether a designer would check it during QA. Before
