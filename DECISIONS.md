@@ -282,6 +282,43 @@ when the browser closes: exactly the lifetime this state wants.
   that window early-returned and the arm then mounted anyway. A token makes the
   in-flight arm abandon instead.
 
+## v1.0 — getting it shippable
+
+### activeTab instead of `<all_urls>`
+
+The extension used to declare a content script on every page in every frame,
+plus an `<all_urls>` host permission. That is the most heavily scrutinised
+configuration on the Chrome Web Store, and it puts "read your data on all
+websites" on the install prompt.
+
+It was never needed. The tool only ever starts from a toolbar click or the
+keyboard command, and both are user gestures that grant `activeTab` for that
+tab. The worker already had an inject-on-demand path for pages that were open
+before the extension loaded; that path is now the only path.
+
+Verified on the shipped manifest: `chrome.permissions.getAll()` returns
+`origins: []`, and a page that has not been activated has nothing injected into
+it.
+
+The cost is that the browser suite cannot arm the tool any more, because
+Playwright cannot click browser chrome and nothing else grants `activeTab`. The
+suite builds a patched copy of the extension with a content script added back,
+and `test/manifest.test.mjs` asserts the shipped manifest stays minimal so the
+two cannot drift apart.
+
+### Font licences
+
+Both bundled faces are SIL Open Font License 1.1, which permits redistribution
+but requires the licence text to travel with the files. They ship in
+`src/fonts/`, and `npm run package` fails if either is missing from the zip
+rather than letting a non-compliant build reach the store.
+
+### Packaging
+
+`npm run package` builds the upload zip from the manifest's own version number
+and refuses to include `node_modules`, the test suite or the docs. 86KB, 26
+files.
+
 ## Open questions for v2
 
 - Cross-frame measurement (element in the page vs element inside an iframe).

@@ -7,6 +7,18 @@ spacing box instead of an alphabetical list of CSS.
 
 Built for designers doing design QA, not for reading CSS.
 
+## Permissions
+
+The extension asks for `activeTab`, `scripting` and `storage`. That is all.
+
+There is no host permission and no always-on content script. Nothing is injected
+into any page until you click the toolbar icon or press the shortcut, and Chrome
+grants access only to that one tab, only for that visit. Install shows no "read
+your data on all websites" warning.
+
+It makes no network requests and stores nothing but your unit, theme, card
+position and card size, locally.
+
 ## Install (unpacked)
 
 1. Clone this repo.
@@ -127,10 +139,27 @@ test/measure.test.mjs   geometry unit tests, no browser
 ## Tests
 
 ```bash
-npm install     # playwright, for the e2e tests only; the extension has no dependencies
-npm test        # geometry unit tests, then the browser suite
+npm install         # playwright, for the e2e tests only; the extension has no dependencies
+npm test            # manifest checks, geometry units, then the browser suite
 npm run test:unit   # geometry only, no browser needed
 ```
+
+The browser suite runs against a **patched copy** of the extension, built by
+`test/build-test-extension.mjs`. The shipped manifest only has `activeTab`,
+which Chrome grants on a real toolbar click, and Playwright cannot click browser
+chrome. The copy adds back a content script so the suite can get in.
+`test/manifest.test.mjs` asserts the shipped manifest stays minimal, so the two
+cannot quietly diverge.
+
+## Packaging for the Chrome Web Store
+
+```bash
+npm run package
+```
+
+Writes `dist/design-tool-<version>.zip` with the extension only: no
+`node_modules`, no tests, no markdown. It fails the build if either font licence
+is missing, since the OFL requires them to ship with the fonts.
 
 Loads the extension into a real Chromium, drives it against `test/fixture.html`,
 and writes screenshots to `test/out/`. The mouse moves in small steps rather

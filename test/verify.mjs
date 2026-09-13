@@ -12,9 +12,12 @@ import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
+import { buildTestExtension } from './build-test-extension.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const EXT = path.resolve(HERE, '..');
+// The shipped manifest asks only for activeTab, which needs a real toolbar
+// click. Playwright cannot click browser chrome, so drive a patched copy.
+const EXT = buildTestExtension();
 const OUT = path.join(HERE, 'out');
 fs.mkdirSync(OUT, { recursive: true });
 
