@@ -19,6 +19,12 @@
            background: rgba(0, 0, 0, 0.02); }
   .tile-h { font-size: 2rem; line-height: 1.3; margin: 0 0 8px; }
   .tile-d { font-size: 1.4rem; color: #5b6472; }
+
+  /* A container whose padding and border are both non-zero. The inset from it
+     should read as the padding (12), not padding + border (13). */
+  .bordered { width: 300px; margin-top: 32px; padding: 12px; border: 1px solid #c8ced6;
+              border-radius: 8px; background: #fff; }
+  .bordered > div { height: 60px; background: #dbe4f7; border-radius: 4px; }
 </style></head><body>
 <h1 id="title">Design QA fixture</h1>
 <div class="grid" id="grid">
@@ -40,4 +46,5 @@
     <p class="tile-d">Ends On: Fri, 11/09/26</p>
   </div>
 </section>
+<div class="bordered" id="bordered"><div id="inner"></div></div>
 </body></html>

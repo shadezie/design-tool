@@ -211,6 +211,25 @@ Chrome keeps whatever binding a user already has when a suggested key changes,
 so anyone who installed before this needs to reset it at
 `chrome://extensions/shortcuts`.
 
+### Nested insets measure from the padding box
+
+Reported from a real page: DevTools said the container's padding was 12px, the
+spacing diagram agreed, and the measurement said 13px.
+
+All three were right. `getBoundingClientRect()` returns the **border box**, so
+the distance from a container's outer edge to its child includes the
+container's 1px border. Correct arithmetic, wrong number: nobody QAs the
+border-box inset, and the border is already reported on its own line in the
+spacing diagram, so counting it here states it twice.
+
+When one element really is an ancestor of the other, the container's rect is
+now shrunk by its border widths before measuring. Siblings are untouched: the
+visible gap between two elements genuinely is border box to border box.
+
+The adjustment lives in the caller (`index.js`) rather than in `measure.js`, so
+the geometry stays a pure rect-in, numbers-out function. That let it get unit
+tests that need no browser (`test/measure.test.mjs`).
+
 ## Open questions for v2
 
 - Cross-frame measurement (element in the page vs element inside an iframe).

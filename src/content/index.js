@@ -86,8 +86,12 @@
     // The measurement follows the live rects, so it stays true while scrolling.
     let result = null;
     if (rectA) {
+      const otherEl = state === 'lockedAB' ? elB : hoverEl !== elA ? hoverEl : null;
       const against = state === 'lockedAB' ? rectB : hoverEl && hoverEl !== elA ? rectHover : null;
-      if (against) result = measure(rectA, against);
+      if (against) {
+        const [outerRect, innerRect] = insetForBorder(elA, rectA, otherEl, against);
+        result = measure(outerRect, innerRect);
+      }
     }
 
     const data = styles.read(target);
@@ -109,6 +113,36 @@
 
     const { left, top } = card.position(overlay.card);
     overlay.setCardPosition(left, top);
+  }
+
+  /**
+   * getBoundingClientRect() returns the border box, so measuring a child
+   * against its container counts the container's border: a 12px padding with a
+   * 1px border reads as 13px, which is not the number anyone is checking.
+   *
+   * When one element really is an ancestor of the other, measure from the
+   * container's padding box instead. Then the inset matches the padding the
+   * page actually declares, and the border stays reported on its own in the
+   * spacing box.
+   */
+  function insetForBorder(elOne, rectOne, elTwo, rectTwo) {
+    if (!elOne || !elTwo || elOne === elTwo) return [rectOne, rectTwo];
+    const oneIsOuter = elOne.contains(elTwo);
+    if (!oneIsOuter && !elTwo.contains(elOne)) return [rectOne, rectTwo];
+
+    const outerEl = oneIsOuter ? elOne : elTwo;
+    const outerRect = oneIsOuter ? rectOne : rectTwo;
+    const cs = getComputedStyle(outerEl);
+    const shrunk = {
+      top: outerRect.top + (parseFloat(cs.borderTopWidth) || 0),
+      right: outerRect.right - (parseFloat(cs.borderRightWidth) || 0),
+      bottom: outerRect.bottom - (parseFloat(cs.borderBottomWidth) || 0),
+      left: outerRect.left + (parseFloat(cs.borderLeftWidth) || 0),
+    };
+    shrunk.width = shrunk.right - shrunk.left;
+    shrunk.height = shrunk.bottom - shrunk.top;
+
+    return oneIsOuter ? [shrunk, rectTwo] : [rectOne, shrunk];
   }
 
   function label(el, rect) {

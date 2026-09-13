@@ -80,7 +80,10 @@ Position, size and theme persist across pages.
   line between the facing edges, with extension lines so it is obvious which
   edges it spans.
 - **One element inside another** - four numbers, one per edge, because a single
-  number would be a lie.
+  number would be a lie. Measured from the container's **padding box**: a 12px
+  padding with a 1px border reads as 12px, not 13px. `getBoundingClientRect()`
+  returns the border box, so the border would otherwise be counted twice, once
+  here and once in the spacing diagram.
 - **Elements offset on both axes** - the horizontal and vertical components
   separately, not a diagonal nobody designs against.
 
@@ -118,13 +121,15 @@ src/fonts/              the two brand typefaces as WOFF2
 test/fixture.html       a page with known-correct values to check against
 test/verify.mjs         end-to-end checks in a real Chromium
 test/render-icons.mjs   regenerates the icon PNGs from icon.svg
+test/measure.test.mjs   geometry unit tests, no browser
 ```
 
 ## Tests
 
 ```bash
-npm install     # playwright, for the tests only; the extension has no dependencies
-npm test
+npm install     # playwright, for the e2e tests only; the extension has no dependencies
+npm test        # geometry unit tests, then the browser suite
+npm run test:unit   # geometry only, no browser needed
 ```
 
 Loads the extension into a real Chromium, drives it against `test/fixture.html`,
