@@ -156,15 +156,21 @@ const DOCK_LEFT = VW - 330 - 14; // card width 330, MARGIN 14
 const headerY = 34;
 
 const darkCard = await probe(DOCK_LEFT + 6, headerY);
-await glide({ x: VW - 154, y: headerY }); // the theme button
-await page.mouse.click(VW - 154, headerY);
+// Header from the right edge: 10px padding, close (22), gap, units (98), gap,
+// theme (22).
+const THEME_X = VW - 167;
+const GRIP_X = VW - 323;
+const CLOSE_X = VW - 35;
+
+await glide({ x: THEME_X, y: headerY });
+await page.mouse.click(THEME_X, headerY);
 await page.waitForTimeout(350);
 const surface = await probe(DOCK_LEFT + 6, headerY);
 check('theme toggle repaints the card', !darkCard.equals(surface));
 await page.screenshot({ path: `${OUT}/theme-light.png` });
 
 // Drag the card by its grip to a spot a wide-screen user would pick.
-const grip = { x: VW - 321, y: headerY };
+const grip = { x: GRIP_X, y: headerY };
 const dropped = { x: 520, y: 300 };
 const pinned = { left: dropped.x - (grip.x - DOCK_LEFT), top: dropped.y - (headerY - 14) };
 
@@ -177,17 +183,15 @@ check('card moved to where it was dropped', surface.equals(await probe(pinned.le
 check('card left the dock', !surface.equals(await probe(DOCK_LEFT + 6, headerY)));
 await page.screenshot({ path: `${OUT}/dragged.png` });
 
-// Resize from the bottom-right corner. Find the bottom edge by probing down the
-// card's own left edge until the page shows through.
-let bottom = pinned.top + 40;
-for (let y = bottom; y < 718; y += 6) {
-  if (!surface.equals(await probe(pinned.left + 6, y))) break;
-  bottom = y;
-}
-const corner = { x: pinned.left + 322, y: bottom - 4 };
-// Inside the hero row's right padding once the card is wider: plain card
-// background, clear of the unit control and of any value text.
+// Resize from the bottom-right corner. The card's height is capped 10px from
+// the viewport bottom (overlay.setCardPosition), and it is taller than that
+// here, so the handle sits at a position we can compute rather than hunt for.
+const VH = page.viewportSize().height;
+const cardRight = pinned.left + 330;
+const cardBottom = VH - 10;
+const corner = { x: cardRight - 8, y: cardBottom - 8 };
 const grew = { x: pinned.left + 458, y: pinned.top + 100 };
+
 check('the card is not that wide yet', !surface.equals(await probe(grew.x, grew.y)));
 
 await page.mouse.move(corner.x, corner.y);
@@ -202,6 +206,17 @@ await page.screenshot({ path: `${OUT}/resized.png` });
 await page.mouse.dblclick(pinned.left + 22, pinned.top + 20);
 await page.waitForTimeout(400);
 check('double-click on the grip re-docks the card', !surface.equals(await probe(pinned.left + 6, pinned.top + 20)));
+
+// ---- the close control ---------------------------------------------------
+await glide({ x: CLOSE_X, y: headerY });
+await page.mouse.click(CLOSE_X, headerY);
+await page.waitForTimeout(400);
+check(
+  'close button stops the tool',
+  await page.evaluate(() => !document.getElementById('designtool-root'))
+);
+await arm(); // back on for the rest of the run
+await page.waitForTimeout(300);
 
 // ---- measurement ---------------------------------------------------------
 await page.keyboard.press('u'); // back to px for a readable screenshot

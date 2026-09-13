@@ -19,6 +19,7 @@
   let card = null;
   let resizer = null;
   let sizeWatcher = null;
+  let loadedFonts = [];
   const highlights = new Map();
   let measureNodes = [];
 
@@ -110,6 +111,7 @@
       }
 
       overlay.setTheme(prefs.get('theme'));
+      loadFonts();
 
       resizer = el('div', 'resizer');
       resizer.style.display = 'none';
@@ -128,6 +130,14 @@
     },
 
     unmount() {
+      for (const face of loadedFonts) {
+        try {
+          document.fonts.delete(face);
+        } catch {
+          // Already gone, or the document is being torn down.
+        }
+      }
+      loadedFonts = [];
       sizeWatcher?.disconnect();
       sizeWatcher = null;
       overlay.dragging = false;
@@ -164,7 +174,7 @@
       tag.textContent = label || '';
       tag.style.display = label ? 'block' : 'none';
       // Flip the tag inside the element when it would sit above the viewport.
-      tag.style.top = rect.top < 20 ? '0px' : '-19px';
+      tag.style.top = rect.top < 24 ? '2px' : '-22px';
     },
 
     clearHighlights() {
@@ -202,6 +212,34 @@
       resizer.style.display = show ? 'block' : 'none';
     },
   };
+
+  /**
+   * Register the brand typefaces on the document.
+   *
+   * They cannot live in the shadow root: Chrome ignores @font-face rules
+   * declared inside one. A strict font-src CSP can still refuse them, so every
+   * step is guarded and the stylesheet falls back to the platform stack.
+   */
+  function loadFonts() {
+    if (typeof FontFace !== 'function' || !document.fonts) return;
+    for (const [family, file, descriptors] of DT.FONTS) {
+      try {
+        const url = chrome.runtime.getURL(`src/fonts/${file}`);
+        const face = new FontFace(family, `url("${url}") format("woff2")`, descriptors);
+        face
+          .load()
+          .then(() => {
+            document.fonts.add(face);
+            loadedFonts.push(face);
+          })
+          .catch(() => {
+            // Page CSP blocked it; the fallback stack takes over.
+          });
+      } catch {
+        // FontFace construction can throw on malformed descriptors.
+      }
+    }
+  }
 
   function addLine(seg, isGuide) {
     const line = el('div', `mline${isGuide ? ` is-guide is-${seg.axis}` : ''}`);

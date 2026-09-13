@@ -26,6 +26,9 @@
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
       'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+    close:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+      'stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     sun:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
       'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -85,7 +88,7 @@
     if (value == null || value === '') return;
     const wrap = el('div', 'row');
     wrap.appendChild(el('dt', null, label));
-    const dd = el('dd');
+    const dd = el('dd', /^#[0-9A-F]{3,8}$/i.test(String(value)) ? 'is-hex' : null);
     if (swatch) {
       const chip = el('span', 'swatch');
       chip.style.background = swatch;
@@ -228,6 +231,7 @@
       head.appendChild(identityLine(data.identity));
       head.appendChild(themeToggle(opts.onUnitChange));
       head.appendChild(unitToggle(opts.onUnitChange));
+      head.appendChild(iconButton('close', ICONS.close, 'Stop Design Tool (Esc)', opts.onClose));
       card.appendChild(head);
 
       card.classList.toggle('is-pinned', !!pin);
@@ -323,7 +327,7 @@
       }
       if (hasFill) card.appendChild(fillSec);
 
-      card.appendChild(hint(opts.state));
+      card.appendChild(shortcuts(opts.state));
     },
   };
 
@@ -341,28 +345,46 @@
     return sec;
   }
 
-  function hint(state) {
-    const node = el('div', 'hint');
-    const parts = {
-      armed: 'Click an element to lock it, then hover or click a second one to measure.',
-      lockedA: 'Hover to preview the gap. Click to freeze the measurement.',
-      lockedAB: 'Click anywhere to start over.',
-    };
-    node.appendChild(document.createTextNode(parts[state] || parts.armed));
-    node.appendChild(document.createTextNode(' '));
-    const alt = el('kbd', null, 'Alt');
-    const scroll = el('kbd', null, 'scroll');
-    node.appendChild(alt);
-    node.appendChild(document.createTextNode(' + '));
-    node.appendChild(scroll);
-    node.appendChild(document.createTextNode(' walks the DOM, '));
-    node.appendChild(el('kbd', null, 'U'));
-    node.appendChild(document.createTextNode(' cycles units, '));
-    node.appendChild(el('kbd', null, 'Esc'));
-    node.appendChild(document.createTextNode(' exits. Hold '));
-    node.appendChild(el('kbd', null, DEEP_KEY));
-    node.appendChild(document.createTextNode(' to reach past overlays into the deepest layer.'));
-    return node;
+  const STATE_LINE = {
+    armed: 'Click an element to lock it.',
+    lockedA: 'Hover a second element to measure. Click to freeze it.',
+    lockedAB: 'Click anywhere to start a new measurement.',
+  };
+
+  const SHORTCUTS = [
+    [['Click'], 'Lock an element'],
+    [['Click', 'Click'], 'Measure between two'],
+    [[DEEP_KEY, 'hover'], 'Select through overlays'],
+    [['Alt', 'scroll'], 'Walk the DOM tree'],
+    [['U'], 'Cycle px / rem / em'],
+    [['Esc'], 'Clear, then exit'],
+  ];
+
+  /**
+   * The shortcuts were a paragraph of prose at the bottom of the card, which
+   * nobody reads. As a keys-and-meaning table they are scannable, and the tool
+   * teaches itself while you use it.
+   */
+  function shortcuts(state) {
+    const sec = section('Shortcuts');
+
+    const status = el('p', 'state-line', STATE_LINE[state] || STATE_LINE.armed);
+    sec.appendChild(status);
+
+    const list = el('div', 'sc');
+    for (const [keys, meaning] of SHORTCUTS) {
+      const row = el('div', 'sc-row');
+      const chips = el('div', 'sc-keys');
+      keys.forEach((key, index) => {
+        if (index) chips.appendChild(el('span', 'sc-plus', key === 'Click' ? '' : '+'));
+        chips.appendChild(el('kbd', null, key));
+      });
+      row.appendChild(chips);
+      row.appendChild(el('div', 'sc-meaning', meaning));
+      list.appendChild(row);
+    }
+    sec.appendChild(list);
+    return sec;
   }
 
   function round(n) {
@@ -375,26 +397,16 @@
 
   // Positioning.
   //
-  // The card never follows the cursor. Two earlier rules both made it
-  // unreachable: following the cursor at a fixed offset means the pointer is
-  // never inside it, and flipping corners when the cursor approached meant it
-  // jumped away as you reached for it. So the corner is chosen from the
-  // inspected ELEMENT (stable while you move the mouse), the card freezes once
-  // the pointer comes near, and a pinned card does not move at all.
-  const APPROACH = 48; // freeze the card when the cursor gets this close
-  const RELEASE = 160; // and let it move again only once the cursor is this far
+  // The card sits in the top-right corner and stays there. Earlier versions
+  // chose a corner from the inspected element and re-chose it as you moved,
+  // which meant the card wandered across the screen while you were just
+  // hovering. One fixed home is calmer and easier to build a habit around.
+  //
+  // Dragging the grip pins it wherever you put it, and a pinned card never
+  // moves on its own. Double-click the grip to send it home.
 
-  let dockedLeft = false;
-  let frozen = false;
   let pin = null;
   let drag = null;
-
-  /** Shortest distance from a point to a rect, 0 when inside. */
-  function distanceTo(rect, point) {
-    const dx = Math.max(rect.left - point.x, 0, point.x - rect.right);
-    const dy = Math.max(rect.top - point.y, 0, point.y - rect.bottom);
-    return Math.hypot(dx, dy);
-  }
 
   /** Keep at least a corner of the card on screen whatever the viewport does. */
   function clamp(left, top, width, height) {
@@ -405,15 +417,15 @@
   }
 
   /**
-   * The grip: drag to place the card anywhere, double-click to hand it back to
-   * automatic docking. On a wide screen there is usually dead space that beats
-   * any corner the tool could pick.
+   * The grip: drag to place the card anywhere, double-click to send it back to
+   * the top-right corner. On a wide screen there is usually dead space that
+   * beats any corner the tool could pick.
    */
   function dragGrip(card, onChange) {
     const grip = iconButton(
       'grip',
       ICONS.grip,
-      pin ? 'Drag to move, double-click to re-dock' : 'Drag to place the card'
+      pin ? 'Drag to move, double-click to send it home' : 'Drag to place the card'
     );
 
     grip.addEventListener('mousedown', (event) => {
@@ -504,31 +516,13 @@
   /** Adopt the stored pin. Call after prefs.load(). */
   DT.card.adopt = function adopt() {
     pin = prefs.get('pin');
-    frozen = false;
   };
 
-  /**
-   * @param {HTMLElement} card
-   * @param {DOMRect|null} subjectRect rect of the element being inspected
-   * @param {{x:number,y:number}} cursor
-   */
-  DT.card.position = function position(card, subjectRect, cursor) {
+  /** @param {HTMLElement} card */
+  DT.card.position = function position(card) {
     const rect = card.getBoundingClientRect();
     const width = rect.width || CARD_WIDTH;
-    const vw = window.innerWidth;
-
     if (pin) return clamp(pin.left, pin.top, width, rect.height);
-
-    const distance = rect.width ? distanceTo(rect, cursor) : Infinity;
-    if (distance <= APPROACH) frozen = true;
-    else if (distance > RELEASE) frozen = false;
-
-    if (!frozen && subjectRect) {
-      // Sit on the side away from whatever is being inspected.
-      const subjectCentre = (subjectRect.left + subjectRect.right) / 2;
-      dockedLeft = subjectCentre > vw / 2;
-    }
-
-    return { left: dockedLeft ? MARGIN : vw - width - MARGIN, top: MARGIN };
+    return { left: window.innerWidth - width - MARGIN, top: MARGIN };
   };
 })();

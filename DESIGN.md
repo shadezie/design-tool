@@ -21,66 +21,82 @@ Everything here is defined as CSS custom properties on `.layer` in
 
 ## Colour
 
+From the brand guideline (Figma, "Brand guidelines v1.0"). Four brand colours,
+and the guideline's own ratio note: neutral ground, ink type, blue used
+sparingly.
+
+| Brand | Hex | Use |
+| --- | --- | --- |
+| Primary | `#2A51FD` | The mark, primary actions, active states |
+| Light | `#E8EDFF` | Chips, highlights |
+| Ink | `#0F172A` | Body copy and product chrome |
+| Neutral | `#F4F6FA` | Page and panel backgrounds, cards |
+
 Two token groups, and they are not interchangeable. The **page overlay**
 (highlights, dimension lines, badges) is never themed: it has to read on top of
-whatever the site being reviewed looks like. The **card** is themed, and light
-mode only reassigns its surface tokens.
+whatever the site being reviewed looks like. The **card** is themed.
 
-| Token | Value | Use |
+| Token | Dark | Light |
 | --- | --- | --- |
-| `--bg` | `#14161A` | Card surface |
-| `--bg-soft` | `#1C1F25` | Hint bar, unit toggle track |
-| `--line` | `rgba(255,255,255,0.10)` | Section dividers, card border |
-| `--text` | `#E6E8EB` | Values |
-| `--muted` | `#8B929C` | Labels, section titles, zero values |
-| `--accent` | `#4F8CFF` | Active unit, tag names, hover controls |
-| `--hl-a` | `#4F8CFF` | Element A and the hover highlight (never themed) |
-| `--hl-b` | `#FFB020` | Element B (never themed) |
-| `--measure` | `#FF3B6B` | Dimension lines and their labels (never themed) |
+| `--bg` | `#0F172A` (Ink) | `#FFFFFF` |
+| `--bg-soft` | `#1A2440` | `#F4F6FA` (Neutral) |
+| `--line` | `rgba(232,237,255,0.12)` | `rgba(15,23,42,0.10)` |
+| `--text` | `#F4F6FA` (Neutral) | `#0F172A` (Ink) |
+| `--muted` | `#8895B3` | `#5D6B85` |
+| `--accent` | `#2A51FD` | `#2A51FD` |
+| `--accent-text` | `#6E8CFF` | `#2A51FD` |
+| `--flash` | `rgba(232,237,255,0.09)` | `#E8EDFF` (Light) |
 
-Light mode reassigns the card tokens only:
+`--accent` fills things that carry white text, so it stays brand-exact. Brand
+blue as *text* on the Ink ground is too dark to read, so `--accent-text` lifts
+it on dark and is brand-exact on light. Hex readouts use it, as the guideline's
+inspector mock does.
 
-| Token | Light value |
-| --- | --- |
-| `--bg` | `#FFFFFF` |
-| `--bg-soft` | `#F2F4F7` |
-| `--line` | `rgba(0,0,0,0.10)` |
-| `--text` | `#14181D` |
-| `--muted` | `#6B7280` |
-| `--accent` | `#2F6FE4` (darkened for contrast on white) |
+`--bg-soft` on dark is derived rather than brand-specified: the guideline gives
+one dark ground, and the chips in its own product mock sit a step above it.
 
-The spacing-box ring tints are tokens too (`--tint-margin`, `--tint-border`,
-`--tint-padding`, `--tint-content`) because a 7% wash that reads on near-black
-is invisible on white. Light mode roughly doubles them.
+### Functional colours, outside the brand palette
 
-Three signal colours, three roles, no overlap:
+| Token | Hex | Why |
+| --- | --- | --- |
+| `--hl-a` | `#2A51FD` | Brand primary. The element you picked |
+| `--hl-b` | `#FFB020` | A second element must be tellable apart from the first |
+| `--measure` | `#FF3B6B` | A dimension line must be tellable apart from both |
 
-- **Blue** is "the thing you picked".
-- **Amber** is "the thing you picked second".
-- **Red** is "the number between them".
-
-Highlights fill at 10-14% alpha so the underlying element stays readable through
-them. Ring backgrounds in the spacing box sit at 7-8%.
+The brand palette has one accent. Measurement needs three signals at once on top
+of an arbitrary site, so B and the dimension lines borrow amber and pink. They
+are the only non-brand colours in the tool and they never touch the card chrome.
 
 ## Type
 
-| Role | Spec |
+Both brand typefaces ship with the extension as WOFF2 (`src/fonts/`, ~47KB
+total), registered on the document with the CSS Font Loading API. `@font-face`
+inside a shadow root is ignored by Chrome, so they cannot be declared in the
+overlay stylesheet. A strict `font-src` CSP can still refuse them; every step is
+guarded and the stack falls back to the platform fonts.
+
+| Role | Face |
 | --- | --- |
-| Values, identity line, badges | `ui-monospace, SFMono-Regular, Menlo, Consolas` |
-| Labels, section titles, hints | `ui-sans-serif, -apple-system, Segoe UI, Roboto` |
+| Labels, values, inspector readouts, section titles | IBM Plex Mono |
+| Hints and prose | Plus Jakarta Sans |
+
+The guideline assigns **labels as well as values** to the mono, which is why row
+labels are mono rather than sans. Mono labels are wider, so the label column is
+106px rather than the 88px the sans version used.
 
 | Style | Size / weight / tracking |
 | --- | --- |
-| Section title | 9px / 600 / `0.09em`, uppercase, `--muted` |
-| Label (`dt`) | 12px / 400 / normal, `--muted` |
-| Value (`dd`) | 12px / 400 / mono, `--text`, right-aligned |
-| Ring value | 10px / 400 / mono |
-| Dimension label | 11px / 600 / mono, white on `--measure` |
-| Element badge | 10px / 500 / mono, white on the highlight colour |
-| Hint | 11px / 400 / sans, `--muted` |
+| Section title | 9px / 500 mono / `0.18em`, uppercase, `--muted` |
+| Tile label | 8px / 500 mono / `0.12em`, uppercase, `--muted` |
+| Tile value | 18px / 500 mono / `-0.02em`, `--text` |
+| Label (`dt`) | 11px / 400 mono, `--muted` |
+| Value (`dd`) | 12px / 400 mono, `--text`, right-aligned |
+| Shortcut meaning, state line | 11px / 400 sans, `--muted` / `--text` |
 
-Mono for anything you would compare against a spec. Sans for anything you read
-once.
+Section labels take the brand's `0.18em` uppercase tracking. Tile labels drop to
+`0.12em` at 8px, because `LINE HEIGHT PX` clips inside an 86px tile at `0.18em`.
+Display sizes tighten tracking per the guideline's `-0.035em` note; at 18px the
+tile values take `-0.02em`.
 
 ## Space
 
@@ -177,10 +193,22 @@ the diagram. Gap versus padding is the confusion this panel exists to end.
 
 ### Header controls
 
-Left to right: drag grip, identity, theme toggle, unit control. 22x22 icon
-buttons, 14px stroked SVG at `--muted`, going to `--text` on a `--flash`
-ground. The grip turns `--accent` while the card is pinned, which is the only
-indication the card is no longer docking itself.
+Left to right: drag grip, identity, theme toggle, unit control, close. 22x22
+icon buttons, 14px stroked SVG at `--muted`, going to `--text` on a `--flash`
+ground. Close is the exception: it goes white on `--measure`, because stopping
+the tool is the one destructive thing in the header.
+
+The grip turns `--accent` while the card is pinned, the only indication that the
+card is no longer in its home position.
+
+### Shortcuts
+
+A state line in `--text` saying what to do next, then a keys-and-meaning table:
+a 104px column of `kbd` chips, then the meaning in sans `--muted`.
+
+This was a paragraph of prose, which nobody reads. As a table it is scannable
+and the tool teaches itself while you use it. Keep every meaning to one line at
+330px; that is the whole point of the format.
 
 ### Resize handle
 
@@ -215,18 +243,14 @@ hover. `aria-pressed` carries the state.
 
 ## Behaviour rules
 
-- **The card is always docked to a top corner and never follows the cursor.**
-  A card anchored to the pointer can never be reached, because the pointer is
-  never inside it.
-- **The card dodges the inspected element, not the pointer.** It docks to the
-  side away from whatever is being inspected, which is stable while you move the
-  mouse. A rule that reacts to cursor position makes the card flee as you reach
-  for it.
-- **The card freezes on approach.** Within 48px of the cursor it holds position
-  until the cursor is 160px away again. This is the guarantee that no future
-  positioning rule can reintroduce the dodge.
-- **A pinned card does not move at all.** Dragging the grip pins it;
-  double-clicking the grip hands it back to automatic docking. Position and size
+- **The card has one home: the top-right corner, and it stays there.** It does
+  not follow the cursor and it does not pick a side per element. Both of those
+  shipped and both were wrong: a card anchored to the pointer can never be
+  reached, and a card that re-chooses its corner wanders across the screen while
+  you are only hovering. One fixed home is calmer and you build a habit around
+  it.
+- **A pinned card does not move at all.** Dragging the grip pins it wherever you
+  drop it; double-clicking the grip sends it home. Position, size and theme
   persist across pages.
 - **A drag that starts on the card never selects an element.** Releasing a drag
   or resize outside the card fires a click at the page; the press origin is

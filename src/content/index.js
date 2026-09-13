@@ -107,8 +107,7 @@
     renderCard(data, result);
     overlay.showCard(true);
 
-    const subjectRect = state === 'armed' ? rectHover : rectA;
-    const { left, top } = card.position(overlay.card, subjectRect, cursor);
+    const { left, top } = card.position(overlay.card);
     overlay.setCardPosition(left, top);
   }
 
@@ -136,6 +135,7 @@
       onUnitChange: () => {
         cardSignature = '';
       },
+      onClose: () => disarm(true),
     });
   }
 

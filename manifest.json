@@ -3,8 +3,14 @@
   "name": "Design Tool",
   "version": "0.1.0",
   "description": "Figma-style inspection for any website. Hover for type styles, click two elements to measure the gap, see the spacing box.",
-  "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "src/background.js"
   },
@@ -25,13 +31,17 @@
   },
   "commands": {
     "_execute_action": {
-      "suggested_key": { "default": "Alt+Shift+D" },
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
       "description": "Toggle Design Tool inspect mode"
     }
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "<all_urls>"
+      ],
       "all_frames": true,
       "run_at": "document_idle",
       "js": [
@@ -45,6 +55,16 @@
         "src/content/card.js",
         "src/content/inspect.js",
         "src/content/index.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/fonts/*.woff2"
+      ],
+      "matches": [
+        "<all_urls>"
       ]
     }
   ]

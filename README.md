@@ -23,10 +23,11 @@ refresh the page you are testing.
 | --- | --- |
 | Click the toolbar icon, or `Alt+Shift+D` | Arms inspect mode (badge reads `ON`) |
 | Hover | Card shows typography, spacing, layout, fill for whatever is under the cursor |
-| | The card stays docked in a top corner, on the side away from what you are inspecting |
+| | The card sits in the top-right corner and stays there |
 | Drag the grip | Places the card anywhere. Double-click the grip to re-dock it |
 | Drag the corner | Resizes the card |
 | Sun / moon icon | Switches the card between light and dark |
+| ✕ icon | Stops the tool, same as `Esc` `Esc` |
 | Click an element | Locks it as **A** (blue) |
 | Hover another element | Live measurement between A and it |
 | Click again | Freezes it as **B** (amber) |
@@ -55,13 +56,20 @@ instead of on what you are looking at.
   cursor instead. Same idea as selecting through a group in Figma.
 - `Alt` + scroll (or `[` / `]`) then walks up and down from wherever you landed.
 
+## Branding
+
+Colour and type follow the Design Tool brand guideline. Both brand typefaces
+(Plus Jakarta Sans, IBM Plex Mono) ship with the extension so they render
+everywhere, not only where they are installed. See `DESIGN.md` for the tokens
+and for the three functional colours that sit outside the brand palette.
+
 ## The card is a panel
 
 Position, size and theme persist across pages.
 
 - **Grip** (top left): drag to place the card anywhere on screen, which is what
-  you want on a wide display. Double-click it to hand the card back to automatic
-  docking. The grip turns blue while the card is pinned.
+  you want on a wide display. Double-click it to send the card home to the
+  top-right corner. The grip turns blue while the card is pinned.
 - **Corner handle**: drag to resize, 260 to 680 wide.
 - **Sun / moon**: light or dark. The highlights and dimension lines on the page
   never change colour, since they have to read on top of any site.
@@ -106,6 +114,7 @@ src/content/
   spacing-box.js        the margin/border/padding diagram
 src/ui/overlay-styles.js  all injected CSS, as a string
 src/icons/icon.svg      icon source, exported from Figma
+src/fonts/              the two brand typefaces as WOFF2
 test/fixture.html       a page with known-correct values to check against
 test/verify.mjs         end-to-end checks in a real Chromium
 test/render-icons.mjs   regenerates the icon PNGs from icon.svg

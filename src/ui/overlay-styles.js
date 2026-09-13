@@ -12,6 +12,18 @@
 (() => {
   const DT = (window.__designtool = window.__designtool || {});
 
+  /**
+   * @font-face inside a shadow root is ignored by Chrome, so the brand faces
+   * are registered on the document with the CSS Font Loading API instead. The
+   * family names are prefixed so they cannot collide with a page that ships its
+   * own copy of either typeface.
+   */
+  DT.FONTS = [
+    ['Design Tool Sans', 'plus-jakarta-sans.woff2', { weight: '200 800' }],
+    ['Design Tool Mono', 'ibm-plex-mono-400.woff2', { weight: '400' }],
+    ['Design Tool Mono', 'ibm-plex-mono-500.woff2', { weight: '500' }],
+  ];
+
   DT.css = `
 :host { all: initial; }
 
@@ -22,46 +34,57 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--sans);
 
-  /* page overlay, never themed */
-  --hl-a: #4f8cff;
+  /* Brand type. The bundled faces load first, then the designer's local copy,
+     then the platform stack. */
+  --sans: "Design Tool Sans", "Plus Jakarta Sans", ui-sans-serif, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --mono: "Design Tool Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular,
+    "SF Mono", Menlo, Consolas, monospace;
+
+  /* Page overlay. Never themed: it has to read on top of any site.
+     Brand blue marks the element you picked. The other two are functional
+     colours outside the brand palette, because a second element and a
+     dimension line have to stay tellable apart from it and from each other. */
+  --hl-a: #2a51fd;
   --hl-b: #ffb020;
   --measure: #ff3b6b;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  /* card surface, dark */
-  --bg: #14161a;
-  --bg-soft: #1c1f25;
-  --line: rgba(255, 255, 255, 0.10);
-  --text: #e6e8eb;
-  --muted: #8b929c;
-  --accent: #4f8cff;
-  --zero: #565d68;
-  --flash: rgba(255, 255, 255, 0.07);
-  --ring-line: rgba(255, 255, 255, 0.14);
-  --tint-margin: rgba(255, 176, 32, 0.07);
-  --tint-border: rgba(140, 150, 165, 0.08);
-  --tint-padding: rgba(79, 255, 176, 0.07);
-  --tint-content: rgba(79, 140, 255, 0.12);
-  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  /* Card surface, dark. Ground is brand Ink. */
+  --bg: #0f172a;
+  --bg-soft: #1a2440;
+  --line: rgba(232, 237, 255, 0.12);
+  --text: #f4f6fa;
+  --muted: #8895b3;
+  --accent: #2a51fd;
+  --accent-text: #6e8cff;
+  --zero: #4c5a78;
+  --flash: rgba(232, 237, 255, 0.09);
+  --ring-line: rgba(232, 237, 255, 0.16);
+  --tint-margin: rgba(255, 176, 32, 0.08);
+  --tint-border: rgba(136, 149, 179, 0.10);
+  --tint-padding: rgba(45, 212, 160, 0.08);
+  --tint-content: rgba(42, 81, 253, 0.22);
+  --shadow: 0 12px 32px rgba(4, 9, 22, 0.55);
 }
 
 .layer[data-theme="light"] {
   --bg: #ffffff;
-  --bg-soft: #f2f4f7;
-  --line: rgba(0, 0, 0, 0.10);
-  --text: #14181d;
-  --muted: #6b7280;
-  --accent: #2f6fe4;
-  --zero: #b6bcc5;
-  --flash: rgba(0, 0, 0, 0.06);
-  --ring-line: rgba(0, 0, 0, 0.14);
-  --tint-margin: rgba(255, 159, 10, 0.14);
-  --tint-border: rgba(120, 130, 145, 0.12);
-  --tint-padding: rgba(16, 185, 129, 0.12);
-  --tint-content: rgba(47, 111, 228, 0.13);
-  --shadow: 0 12px 32px rgba(20, 24, 32, 0.18);
+  --bg-soft: #f4f6fa;
+  --line: rgba(15, 23, 42, 0.10);
+  --text: #0f172a;
+  --muted: #5d6b85;
+  --accent: #2a51fd;
+  --accent-text: #2a51fd;
+  --zero: #aab3c6;
+  --flash: #e8edff;
+  --ring-line: rgba(15, 23, 42, 0.14);
+  --tint-margin: rgba(255, 159, 10, 0.16);
+  --tint-border: rgba(93, 107, 133, 0.12);
+  --tint-padding: rgba(16, 185, 129, 0.13);
+  --tint-content: rgba(42, 81, 253, 0.12);
+  --shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
 }
 
 /* ---------- element highlights ---------- */
@@ -80,13 +103,14 @@
 
 .hl-tag {
   position: absolute;
-  top: -19px;
+  top: -22px;
   left: -1px;
-  padding: 2px 6px;
-  border-radius: 3px 3px 0 0;
+  padding: 3px 8px;
+  border-radius: 6px;
   background: var(--hl-a);
   color: #fff;
   font: 500 10px/1.4 var(--mono);
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 .hl.is-b .hl-tag { background: var(--hl-b); color: #241a00; }
@@ -157,8 +181,8 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 12px;
+  gap: 6px;
+  padding: 9px 10px;
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
@@ -178,6 +202,7 @@
   cursor: pointer;
 }
 .icon-btn:hover { background: var(--flash); color: var(--text); }
+.icon-btn.close:hover { background: var(--measure); color: #fff; }
 .icon-btn svg { width: 14px; height: 14px; display: block; }
 
 .grip { cursor: grab; }
@@ -206,7 +231,7 @@
   background: var(--bg-soft);
 }
 .units button {
-  padding: 4px 10px;
+  padding: 4px 8px;
   border: 0;
   border-radius: 4px;
   background: none;
@@ -267,8 +292,8 @@
   display: block;
   margin-bottom: 3px;
   color: var(--muted);
-  font: 600 9px/1.4 ui-sans-serif, sans-serif;
-  letter-spacing: 0.08em;
+  font: 500 8px/1.4 var(--mono);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -276,7 +301,8 @@
 .tile-value {
   display: block;
   color: var(--text);
-  font: 600 18px/1.2 var(--mono);
+  font: 500 18px/1.2 var(--mono);
+  letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -294,19 +320,19 @@
 .sec-title {
   margin-bottom: 8px;
   color: var(--muted);
-  font: 600 9px/1.4 ui-sans-serif, sans-serif;
-  letter-spacing: 0.09em;
+  font: 500 9px/1.4 var(--mono);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 88px 1fr;
+  grid-template-columns: 106px 1fr;
   gap: 8px;
   align-items: baseline;
   padding: 1px 0;
 }
-.row dt { color: var(--muted); }
+.row dt { color: var(--muted); font: 400 11px/1.6 var(--mono); }
 .row dd {
   font: 400 12px/1.5 var(--mono);
   text-align: right;
@@ -319,6 +345,8 @@
 .copy:hover { background: var(--flash); box-shadow: 0 0 0 3px var(--flash); }
 .copy.is-copied { background: var(--accent); color: #fff; box-shadow: 0 0 0 3px var(--accent); }
 
+.is-hex { color: var(--accent-text); }
+
 .swatch {
   display: inline-block;
   width: 9px;
@@ -329,20 +357,49 @@
   vertical-align: baseline;
 }
 
-.hint {
-  padding: 8px 12px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.6;
-  background: var(--bg-soft);
-}
-.hint kbd {
-  padding: 1px 4px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: var(--bg);
+.state-line {
+  margin-bottom: 9px;
   color: var(--text);
-  font: 500 10px/1.4 var(--mono);
+  font: 400 11px/1.5 var(--sans);
+}
+
+.sc {
+  display: grid;
+  gap: 5px;
+}
+
+.sc-row {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.sc-keys {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: flex-start;
+}
+
+.sc-plus {
+  color: var(--zero);
+  font: 400 9px/1 var(--mono);
+}
+
+.sc-meaning {
+  color: var(--muted);
+  font: 400 11px/1.4 var(--sans);
+}
+
+kbd {
+  padding: 2px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font: 500 10px/1.3 var(--mono);
+  white-space: nowrap;
 }
 
 /* ---------- spacing box ---------- */
@@ -360,8 +417,8 @@
   top: 2px;
   left: 6px;
   color: var(--muted);
-  font: 600 8px/1.3 ui-sans-serif, sans-serif;
-  letter-spacing: 0.08em;
+  font: 500 8px/1.3 var(--mono);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -406,10 +463,10 @@
 .sbox-note {
   margin-top: 7px;
   display: grid;
-  grid-template-columns: 88px 1fr;
+  grid-template-columns: 106px 1fr;
   gap: 8px;
 }
-.sbox-note dt { color: var(--muted); font-size: 12px; }
+.sbox-note dt { color: var(--muted); font: 400 11px/1.6 var(--mono); }
 .sbox-note dd { font: 400 12px/1.5 var(--mono); text-align: right; }
 
 /* ---------- measurement readout inside the card ---------- */
