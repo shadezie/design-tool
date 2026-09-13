@@ -21,7 +21,7 @@ refresh the page you are testing.
 
 | Action | What happens |
 | --- | --- |
-| Click the toolbar icon, or `Alt+Shift+D` | Arms inspect mode (badge reads `ON`) |
+| Click the toolbar icon, or `Option+Shift+I` (`Alt+Shift+I` on Windows) | Arms inspect mode (badge reads `ON`) |
 | Hover | Card shows typography, spacing, layout, fill for whatever is under the cursor |
 | | The card sits in the top-right corner and stays there |
 | Drag the grip | Places the card anywhere. Double-click the grip to re-dock it |

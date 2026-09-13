@@ -39,7 +39,8 @@ grows past a few panels.
 
 ### Toolbar toggle arms the tool, Esc exits
 
-Clicking the extension icon or pressing `Alt+Shift+D` arms inspect mode. Hover
+Clicking the extension icon or pressing `Option+Shift+I` (`Alt+Shift+I` on
+Windows) arms inspect mode. Hover
 is live while armed; the first click locks element A, the second sets B, a third
 starts over from whatever was clicked. `Esc` clears the measurement, `Esc` again
 exits. One mode instead of separate inspect and measure modes: switching modes
@@ -199,6 +200,16 @@ click whose press started on our own UI is swallowed.
 A card pinned low on the page ran past the bottom of the viewport, putting its
 own resize handle out of reach. Max height is now computed from the card's top
 edge every frame.
+
+### The toggle is Option+Shift+I
+
+The brand guideline mocks the shortcut as `Cmd+Shift+I`, which is Chrome's own
+DevTools binding and cannot be overridden by an extension. `Option+Shift+I`
+keeps the `I` for inspect and is unclaimed on both platforms.
+
+Chrome keeps whatever binding a user already has when a suggested key changes,
+so anyone who installed before this needs to reset it at
+`chrome://extensions/shortcuts`.
 
 ## Open questions for v2
 

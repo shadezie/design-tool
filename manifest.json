@@ -15,7 +15,7 @@
     "service_worker": "src/background.js"
   },
   "action": {
-    "default_title": "Design Tool: inspect this page (Alt+Shift+D)",
+    "default_title": "Design Tool: inspect this page (Alt+Shift+I)",
     "default_icon": {
       "16": "src/icons/icon16.png",
       "32": "src/icons/icon32.png",
@@ -32,7 +32,8 @@
   "commands": {
     "_execute_action": {
       "suggested_key": {
-        "default": "Alt+Shift+D"
+        "default": "Alt+Shift+I",
+        "mac": "Alt+Shift+I"
       },
       "description": "Toggle Design Tool inspect mode"
     }
