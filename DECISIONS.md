@@ -230,6 +230,58 @@ The adjustment lives in the caller (`index.js`) rather than in `measure.js`, so
 the geometry stays a pure rect-in, numbers-out function. That let it get unit
 tests that need no browser (`test/measure.test.mjs`).
 
+## v1.3 — clearing the review findings
+
+Seven bugs found by review and by driving the tool, fixed together.
+
+### A drag that ended off the card left it glued to the cursor
+
+The worst of them. `suppress` is registered on `window` in the capture phase
+when the tool arms, and it calls `stopImmediatePropagation()`. `endDrag`
+registered on the same target and phase later, so whenever a release landed on
+the page rather than on the card, the suppressor ate it and the drag never
+ended. The card then followed the pointer with no button held, recoverable only
+by Esc and re-arming. Releasing outside the browser window was worse: no
+`mouseup` is delivered there at all, so the state stayed latched.
+
+Both are gone because drag and resize now use **pointer capture** instead of
+window listeners. A captured pointer retargets its events to the grip, which the
+suppressor recognises as our own UI and leaves alone, and `lostpointercapture`
+fires even when the release happens off-window.
+
+### The resize maximum lived in two places
+
+`MAX_W = 680` in JS against `max-width: 640px` in CSS. The rendered card was
+capped either way, so the only symptoms were the handle detaching from the
+cursor for the last 40px and an unrenderable width being persisted. The limits
+are now read from the stylesheet at drag start, so they cannot drift again.
+
+The regression test asserts the **stored** width rather than the rendered one.
+A pixel probe passes on the broken code, because CSS clamps the rendering
+regardless; only what got written to storage tells the two apart.
+
+### Armed state did not outlive the service worker
+
+MV3 evicts an idle worker after about 30 seconds and an in-memory `Map` went
+with it. The next toolbar click then believed the tab was idle, re-sent "arm" to
+an already-armed content script, and looked like the button had stopped working.
+It lives in `chrome.storage.session` now, which is extension-only and clears
+when the browser closes: exactly the lifetime this state wants.
+
+### Three smaller ones
+
+- **Every Esc logged in the page console.** The worker handled the "disarmed"
+  message but never responded, closing the port and rejecting the sender's
+  promise. It answers now, and the sender catches anyway.
+- **A frozen measurement whose element B was removed got stuck.** `elB` was
+  nulled without moving the state off `lockedAB`, so the card sat with no
+  measurement and no live preview until the next click. It falls back to
+  `lockedA`.
+- **Arming twice quickly could leave the page armed with the badge off.**
+  `arm()` awaited storage with the state still `idle`, so a disarm arriving in
+  that window early-returned and the arm then mounted anyway. A token makes the
+  in-flight arm abandon instead.
+
 ## Open questions for v2
 
 - Cross-frame measurement (element in the page vs element inside an iframe).

@@ -202,6 +202,47 @@ await page.waitForTimeout(350);
 check('card resizes from its corner', surface.equals(await probe(grew.x, grew.y)));
 await page.screenshot({ path: `${OUT}/resized.png` });
 
+// The stylesheet caps the card at 640px. A JS maximum wider than that silently
+// ignored the last stretch of the drag and stored an unrenderable width.
+const beyondMax = { x: pinned.left + 660, y: pinned.top + 20 };
+await page.mouse.move(corner.x + 140, corner.y - 40);
+await page.mouse.down();
+await page.mouse.move(corner.x + 600, corner.y - 40, { steps: 15 });
+await page.mouse.up();
+await page.waitForTimeout(300);
+check('resize stops at the width the stylesheet allows', !surface.equals(await probe(beyondMax.x, beyondMax.y)));
+
+// The rendered width is capped by CSS either way, so the giveaway is what got
+// stored: a JS maximum wider than the stylesheet persists a width the card can
+// never render, and the handle detaches from the cursor for that last stretch.
+const storedSize = (await sw.evaluate(() => chrome.storage.local.get('designtool.prefs')))?.['designtool.prefs']?.size;
+check(
+  'the stored width is one the card can render',
+  storedSize != null && storedSize.width <= 640,
+  `stored ${JSON.stringify(storedSize)}`
+);
+
+// Releasing a drag outside the card used to be swallowed by the capture-phase
+// suppressor, leaving the card glued to the cursor with no button held.
+const pinnedGrip = { x: pinned.left + 22, y: pinned.top + 20 };
+await page.mouse.move(pinnedGrip.x, pinnedGrip.y, { steps: 12 });
+await page.mouse.down();
+await page.mouse.move(2, 300, { steps: 25 }); // past the left edge, so the
+await page.mouse.up();                        // release lands on the page
+await page.waitForTimeout(300);
+const parked = await probe(10, 320);
+check('card follows the drag to the screen edge', surface.equals(parked));
+await page.mouse.move(700, 520, { steps: 25 });
+await page.waitForTimeout(300);
+check('card stops when the button is released', surface.equals(await probe(10, 320)));
+
+// Put it back where the rest of the run expects it.
+await page.mouse.move(26, 300, { steps: 8 });
+await page.mouse.down();
+await page.mouse.move(pinned.left + 22, pinned.top + 20, { steps: 20 });
+await page.mouse.up();
+await page.waitForTimeout(300);
+
 // Double-clicking the grip hands the card back to automatic docking.
 await page.mouse.dblclick(pinned.left + 22, pinned.top + 20);
 await page.waitForTimeout(400);
@@ -244,6 +285,13 @@ check(
   'overlay fully removed after Esc Esc',
   await page.evaluate(() => !document.getElementById('designtool-root'))
 );
+
+// MV3 evicts an idle service worker, and the armed-per-tab state used to be an
+// in-memory Map that went with it. It now lives in session storage. The Esc
+// above sends "disarmed" to the worker, which is the reachable end of that
+// path: if the key is present, the worker wrote it.
+const session = await sw.evaluate(() => chrome.storage.session.get('armedTabs'));
+check('the worker persists armed state to session storage', session?.armedTabs !== undefined);
 
 check('no console errors', errors.length === 0, errors.join(' | '));
 

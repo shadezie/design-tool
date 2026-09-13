@@ -22,6 +22,7 @@
   let cursor = { x: 0, y: 0 };
   let cardSignature = '';
   let lastMeasureKey = '';
+  let armToken = 0;
 
   const ids = new WeakMap();
   let nextId = 1;
@@ -57,7 +58,13 @@
 
     // Elements can be removed by the page (SPA re-render) while locked.
     if (elA && !alive(elA)) reset();
-    if (elB && !alive(elB)) elB = null;
+    if (elB && !alive(elB)) {
+      // The page removed B (an SPA re-render, usually). Dropping it without
+      // dropping the state left the card frozen with no measurement and no
+      // live preview until the next click.
+      elB = null;
+      if (state === 'lockedAB') setState('lockedA');
+    }
     if (hoverEl && !alive(hoverEl)) hoverEl = null;
 
     const target = subject();
@@ -256,7 +263,12 @@
 
   async function arm() {
     if (state !== 'idle') return;
+    const token = ++armToken;
+    state = 'arming';
     await prefs.load();
+    // A disarm can land while storage is loading. It bumps the token, and this
+    // arm then has to abandon rather than mount an overlay nobody asked for.
+    if (token !== armToken) return;
     units.adopt();
     card.adopt();
     units.refreshRoot();
@@ -270,6 +282,7 @@
   }
 
   function disarm(notify) {
+    armToken++;
     if (state === 'idle') return;
     setState('idle');
     unbind?.();
@@ -282,9 +295,11 @@
 
     if (notify) {
       try {
-        chrome.runtime.sendMessage({ type: 'designtool:disarmed' });
+        chrome.runtime.sendMessage({ type: 'designtool:disarmed' })?.catch(() => {
+          // The worker may be asleep. Its state resyncs on the next toggle.
+        });
       } catch {
-        // The worker may be asleep; its state resyncs on the next toggle.
+        // Extension context invalidated, e.g. the user just reloaded it.
       }
     }
   }

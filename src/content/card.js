@@ -420,6 +420,13 @@
    * The grip: drag to place the card anywhere, double-click to send it back to
    * the top-right corner. On a wide screen there is usually dead space that
    * beats any corner the tool could pick.
+   *
+   * Drag state uses pointer capture rather than window listeners. The capture
+   * phase suppressor in inspect.js runs before anything registered later on the
+   * same target, and it calls stopImmediatePropagation(), so a release that
+   * landed on the page used to be swallowed and the card stayed glued to the
+   * cursor. Captured pointer events retarget to the grip, which the suppressor
+   * recognises as our own UI and leaves alone.
    */
   function dragGrip(card, onChange) {
     const grip = iconButton(
@@ -427,17 +434,37 @@
       ICONS.grip,
       pin ? 'Drag to move, double-click to send it home' : 'Drag to place the card'
     );
+    let from = null;
 
-    grip.addEventListener('mousedown', (event) => {
+    grip.addEventListener('pointerdown', (event) => {
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
       const rect = card.getBoundingClientRect();
-      drag = { dx: event.clientX - rect.left, dy: event.clientY - rect.top };
+      from = { dx: event.clientX - rect.left, dy: event.clientY - rect.top };
+      capture(grip, event.pointerId);
       overlay.dragging = true;
-      window.addEventListener('mousemove', onDrag, true);
-      window.addEventListener('mouseup', endDrag, true);
     });
+
+    grip.addEventListener('pointermove', (event) => {
+      if (!from) return;
+      event.preventDefault();
+      const rect = card.getBoundingClientRect();
+      pin = clamp(event.clientX - from.dx, event.clientY - from.dy, rect.width, rect.height);
+    });
+
+    // pointerup covers the normal case; lostpointercapture and pointercancel
+    // cover releasing outside the window, which never delivers a pointerup.
+    const end = () => {
+      if (!from) return;
+      from = null;
+      overlay.dragging = false;
+      if (pin) prefs.set('pin', pin);
+      onChange();
+    };
+    grip.addEventListener('pointerup', end);
+    grip.addEventListener('pointercancel', end);
+    grip.addEventListener('lostpointercapture', end);
 
     grip.addEventListener('dblclick', (event) => {
       event.preventDefault();
@@ -447,66 +474,69 @@
       onChange();
     });
 
-    function onDrag(event) {
-      if (!drag) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const rect = card.getBoundingClientRect();
-      pin = clamp(event.clientX - drag.dx, event.clientY - drag.dy, rect.width, rect.height);
-    }
-
-    function endDrag(event) {
-      event.stopPropagation();
-      drag = null;
-      overlay.dragging = false;
-      window.removeEventListener('mousemove', onDrag, true);
-      window.removeEventListener('mouseup', endDrag, true);
-      if (pin) prefs.set('pin', pin);
-      onChange();
-    }
-
     return grip;
   }
 
-  const MIN_W = 260;
-  const MAX_W = 680;
-  const MIN_H = 160;
+  function capture(node, pointerId) {
+    try {
+      node.setPointerCapture(pointerId);
+    } catch {
+      // Pointer already released, or an environment without capture support.
+      // The drag still works, it just cannot follow the cursor off the window.
+    }
+  }
 
   /**
    * Wire the resize handle. Called once per activation, since the handle lives
    * in the overlay rather than in the card's re-rendered contents.
+   *
+   * The limits are read from the stylesheet rather than repeated here: a JS
+   * maximum wider than the CSS one silently ignores the last stretch of the
+   * drag and persists a width the card will never render.
    */
   DT.card.attachResizer = function attachResizer(handle, card) {
     let from = null;
 
-    handle.addEventListener('mousedown', (event) => {
+    handle.addEventListener('pointerdown', (event) => {
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
       const rect = card.getBoundingClientRect();
-      from = { x: event.clientX, y: event.clientY, width: rect.width, height: rect.height };
+      const cs = getComputedStyle(card);
+      from = {
+        x: event.clientX,
+        y: event.clientY,
+        width: rect.width,
+        height: rect.height,
+        minWidth: parseFloat(cs.minWidth) || 260,
+        maxWidth: parseFloat(cs.maxWidth) || 640,
+        minHeight: parseFloat(cs.minHeight) || 160,
+      };
+      capture(handle, event.pointerId);
       overlay.dragging = true;
-      window.addEventListener('mousemove', onResize, true);
-      window.addEventListener('mouseup', endResize, true);
     });
 
-    function onResize(event) {
+    handle.addEventListener('pointermove', (event) => {
       if (!from) return;
       event.preventDefault();
-      event.stopPropagation();
-      const width = clampRange(from.width + (event.clientX - from.x), MIN_W, MAX_W);
-      const height = Math.max(MIN_H, from.height + (event.clientY - from.y));
+      const width = clampRange(
+        from.width + (event.clientX - from.x),
+        from.minWidth,
+        from.maxWidth
+      );
+      const height = Math.max(from.minHeight, from.height + (event.clientY - from.y));
       card.style.width = `${Math.round(width)}px`;
       card.style.height = `${Math.round(height)}px`;
-    }
+    });
 
-    function endResize(event) {
-      event.stopPropagation();
+    const end = () => {
+      if (!from) return;
       from = null;
       overlay.dragging = false;
-      window.removeEventListener('mousemove', onResize, true);
-      window.removeEventListener('mouseup', endResize, true);
-    }
+    };
+    handle.addEventListener('pointerup', end);
+    handle.addEventListener('pointercancel', end);
+    handle.addEventListener('lostpointercapture', end);
   };
 
   function clampRange(value, min, max) {

@@ -95,10 +95,9 @@
       }
       layer.appendChild(card);
 
-      // The card carries `resize: both`, so the browser writes inline width and
-      // height when the user drags the corner. That inline style is the signal
-      // that a size was chosen deliberately, rather than the card just growing
-      // with its content.
+      // The resize handle writes inline width and height on the card. That
+      // inline style is the signal that a size was chosen deliberately, rather
+      // than the card just growing with its content.
       if (typeof ResizeObserver === 'function') {
         sizeWatcher = new ResizeObserver(() => {
           if (!card?.style.width) return;
