@@ -122,11 +122,19 @@ The extension itself has **no dependencies and no build step**. You only need
 npm to run the tests.
 
 ```bash
-npm install         # installs Playwright, for the browser tests only
+npm install         # Playwright plus the Chromium it drives, for the tests only
 npm test            # manifest checks, geometry units, then the browser suite
 npm run test:unit   # geometry only, runs in a second, no browser
 npm run package     # builds dist/design-tool-<version>.zip for the Web Store
 ```
+
+`npm install` also downloads a Chromium for Playwright to drive, which is the
+slow part and is a few hundred MB. If it was skipped, the browser suite fails
+with "Looks like Playwright was just installed"; run `npx playwright install
+chromium` to fix it.
+
+`npm run package` and `npm run test:unit` need neither Playwright nor the
+browser.
 
 The browser suite drives a real Chromium with the extension loaded. It runs
 against a **patched copy** built by `test/build-test-extension.mjs`: the shipped
