@@ -105,10 +105,10 @@ src/content/
   card.js               the card
   spacing-box.js        the margin/border/padding diagram
 src/ui/overlay-styles.js  all injected CSS, as a string
-src/icons/logo.svg      icon source; logo-small.svg is the 16px variant
+src/icons/icon.svg      icon source, exported from Figma
 test/fixture.html       a page with known-correct values to check against
 test/verify.mjs         end-to-end checks in a real Chromium
-test/render-icons.mjs   regenerates the icon PNGs from the SVG sources
+test/render-icons.mjs   regenerates the icon PNGs from icon.svg
 ```
 
 ## Tests

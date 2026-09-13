@@ -239,20 +239,18 @@ hover. `aria-pressed` carries the state.
 
 ## Icon
 
-`src/icons/logo.svg` is the source of truth; the PNGs Chrome loads are rendered
-from it (see `Tests` in the README for the renderer). The mark is three corner
-brackets around a cursor, on `#2B4BF5`.
+`src/icons/icon.svg` is the source of truth, exported from Figma. The mark is
+three corner brackets around a cursor, on `#2A51FD`.
 
-`logo-small.svg` is the same mark tuned for 16px: thicker bracket strokes, less
-padding, and a blue keyline around the cursor to hold it apart from the top-left
-bracket. The faithful mark merges into a blur at that size. 16px uses the tuned
-mark, 32/48/128 use the full one.
+The committed PNGs (16, 32, 48, 128) are Figma exports too. Figma hints small
+sizes better than a browser downscale does, so prefer exporting from there.
+`node test/render-icons.mjs` regenerates them from the SVG when you need a size
+Figma has not exported; check the 16px result by eye before keeping it, since
+that is where the cursor and the top-left bracket start to merge.
 
-To regenerate after editing either SVG:
-
-```bash
-node test/render-icons.mjs
-```
+Note the icon blue (`#2A51FD`) is deeper than the UI accent (`--accent`,
+`#4F8CFF`). The lighter blue is chosen to stay legible on top of arbitrary
+websites, which the icon never has to do.
 
 ## Adding to the UI
 

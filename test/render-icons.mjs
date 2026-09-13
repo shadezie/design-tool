@@ -1,9 +1,11 @@
 /**
- * Render the extension icons from their SVG sources.
+ * Render the extension icons from src/icons/icon.svg.
  *
  *   node test/render-icons.mjs
  *
- * 16px uses the tuned mark: the faithful one blurs into itself at that size.
+ * The committed PNGs come from Figma, which hints small sizes better than a
+ * browser downscale does. Use this when you need a size Figma did not export,
+ * and check the 16px result by eye before keeping it.
  */
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
@@ -13,10 +15,7 @@ import path from 'node:path';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ICONS = path.join(HERE, '..', 'src', 'icons');
 
-const JOBS = [
-  { src: 'logo-small.svg', sizes: [16] },
-  { src: 'logo.svg', sizes: [32, 48, 128] },
-];
+const JOBS = [{ src: 'icon.svg', sizes: [16, 32, 48, 128] }];
 
 const browser = await chromium.launch({ headless: true, channel: 'chromium' });
 for (const job of JOBS) {
