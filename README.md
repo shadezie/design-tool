@@ -7,7 +7,7 @@ spacing box instead of an alphabetical list of CSS.
 
 Built for designers doing design QA, not for reading CSS.
 
-![Measuring the gap between two cards](docs/measure.png)
+![Measuring the gap between two cards](docs/store/measure-1280x800.png)
 
 ## What it does
 
@@ -94,7 +94,7 @@ instead of on what you are looking at.
 
 ## What the measurements mean
 
-![The card reading type styles](docs/typography.png)
+![The card reading type styles](docs/store/typography-1280x800.png)
 
 - **Two elements side by side or stacked**: one gap number, drawn between the
   facing edges.
