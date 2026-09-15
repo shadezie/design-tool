@@ -7,8 +7,8 @@
  * so Chrome treats them as two unrelated extensions: both can be installed at
  * once, and they do not share storage. What they would share is a name, an
  * icon and a keyboard shortcut, which makes it impossible to tell which one
- * you just triggered. This copy renames itself, renders the icon in orange
- * instead of brand blue, and takes Alt+Shift+D so the published build keeps
+ * you just triggered. This copy renames itself, renders the icon on the brand
+ * Ink ground instead of brand blue, and takes Alt+Shift+D so the published build keeps
  * Alt+Shift+I.
  *
  * Nothing here touches the shipped manifest or the committed icons, so a dev
@@ -25,7 +25,7 @@ const ROOT = path.join(HERE, '..');
 const OUT = path.join(ROOT, 'dev');
 
 const BRAND = '#2A51FD';
-const DEV = '#F97316'; // orange, far enough from brand blue to read at 16px
+const DEV = '#0F172A'; // brand Ink, reads as a black tile next to the blue one
 const SIZES = [16, 32, 48, 128];
 
 fs.rmSync(OUT, { recursive: true, force: true });
@@ -64,6 +64,6 @@ for (const size of SIZES) {
 }
 await browser.close();
 
-console.log(`dev/  ->  "${manifest.name}", orange icon, Alt+Shift+D`);
+console.log(`dev/  ->  "${manifest.name}", black icon, Alt+Shift+D`);
 console.log('Load it once via chrome://extensions -> Load unpacked -> select dev/');
 console.log('After that, re-run this and hit Reload on the card to pick up changes.');

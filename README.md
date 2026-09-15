@@ -142,7 +142,7 @@ What they would otherwise share is a name, an icon and a shortcut. `npm run
 dev` writes a `dev/` folder that fixes all three:
 
 - named **Design Tool (Dev)**
-- **orange** icon instead of brand blue
+- **black** icon (brand Ink) instead of brand blue
 - **Alt+Shift+D**, leaving Alt+Shift+I to the published build
 
 Load `dev/` once via **Load unpacked**. After that, re-run `npm run dev` and
