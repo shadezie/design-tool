@@ -35,7 +35,9 @@ size, locally, and nothing else.
 
 ## Install
 
-Not on the Chrome Web Store yet. To run it now:
+[**Install from the Chrome Web Store**](https://chromewebstore.google.com/detail/design-tool/ggnmijonbnnankhpgaiiieejmbdopbka)
+
+Or load it from source:
 
 1. Download or clone this repo.
 2. Open `chrome://extensions`.
@@ -126,7 +128,27 @@ npm install         # Playwright plus the Chromium it drives, for the tests only
 npm test            # manifest checks, geometry units, then the browser suite
 npm run test:unit   # geometry only, runs in a second, no browser
 npm run package     # builds dist/design-tool-<version>.zip for the Web Store
+npm run dev         # builds ./dev/, a side-by-side copy for local testing
 ```
+
+### Running the dev copy next to the published one
+
+An unpacked folder and the Web Store listing get different extension IDs, so
+Chrome treats them as two unrelated extensions. Both can be installed at once
+and they do not share storage, which is what you want: test locally without
+touching the version you actually use.
+
+What they would otherwise share is a name, an icon and a shortcut. `npm run
+dev` writes a `dev/` folder that fixes all three:
+
+- named **Design Tool (Dev)**
+- **orange** icon instead of brand blue
+- **Alt+Shift+D**, leaving Alt+Shift+I to the published build
+
+Load `dev/` once via **Load unpacked**. After that, re-run `npm run dev` and
+press reload on the extension card to pick up code changes. `dev/` is
+gitignored and generated from `manifest.json` and `src/` at build time, so a
+dev name or colour can never reach a store release.
 
 `npm install` also downloads a Chromium for Playwright to drive, which is the
 slow part and is a few hundred MB. If it was skipped, the browser suite fails
