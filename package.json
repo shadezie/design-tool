@@ -8,6 +8,7 @@
     "test": "node test/manifest.test.mjs && node test/measure.test.mjs && node test/verify.mjs",
     "test:unit": "node test/measure.test.mjs",
     "test:e2e": "node test/verify.mjs",
+    "dev": "node test/build-dev.mjs",
     "package": "node test/package.mjs",
     "postinstall": "playwright install chromium",
     "store-images": "node test/store-images.mjs",
