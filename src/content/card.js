@@ -426,14 +426,14 @@
   };
 
   function measurementSection(measurement, _fmt, pair) {
-    const sec = section('Measurement');
+    const multi = measurement.values.length > 1;
 
-    // The numbers are in the hero row above. What is left to say is which two
-    // elements they span, and for the multi-value cases, what kind of
-    // measurement it is, since the tile labels alone do not carry that.
-    if (measurement.values.length > 1) {
-      sec.appendChild(el('p', 'mlead-kind', measurement.note));
-    }
+    // A "MEASUREMENT" heading directly under a tile reading HORIZONTAL GAP 24
+    // says nothing the tile did not. The A and B badges label the block on
+    // their own. Multi-value measurements keep a heading, because there the
+    // tiles are edges and the kind of measurement is not stated anywhere else.
+    const sec = multi ? section('Measurement') : el('section', 'sec');
+    if (multi) sec.appendChild(el('p', 'mlead-kind', measurement.note));
 
     if (pair?.a && pair?.b) sec.appendChild(pairSummary(pair));
     return sec;
@@ -645,16 +645,33 @@
     [['Esc'], 'Clear, then exit'],
   ];
 
+  // Whether the shortcut table is expanded. Module-level because the card
+  // rebuilds its contents on every hover: state on the element itself would be
+  // thrown away a few milliseconds after the user opened it.
+  let shortcutsOpen = false;
+
   /**
-   * The shortcuts were a paragraph of prose at the bottom of the card, which
-   * nobody reads. As a keys-and-meaning table they are scannable, and the tool
-   * teaches itself while you use it.
+   * The shortcuts, folded away.
+   *
+   * As a keys-and-meaning table they are scannable, and the tool teaches itself
+   * while you use it. But they are learned once and then cost a third of the
+   * card's height forever, which is the wrong trade after the first week. The
+   * state line stays out: that one is live feedback about what a click will do
+   * right now, not reference material.
    */
   function shortcuts(state) {
-    const sec = section('Shortcuts');
+    const sec = el('section', 'sec');
+    sec.appendChild(el('p', 'state-line', STATE_LINE[state] || STATE_LINE.armed));
 
-    const status = el('p', 'state-line', STATE_LINE[state] || STATE_LINE.armed);
-    sec.appendChild(status);
+    const fold = el('details', 'sc-fold');
+    fold.open = shortcutsOpen;
+    fold.addEventListener('toggle', () => {
+      shortcutsOpen = fold.open;
+    });
+
+    const summary = el('summary', 'sc-summary');
+    summary.appendChild(el('span', null, 'Shortcuts'));
+    fold.appendChild(summary);
 
     const list = el('div', 'sc');
     for (const [keys, meaning] of SHORTCUTS) {
@@ -668,7 +685,8 @@
       row.appendChild(el('div', 'sc-meaning', meaning));
       list.appendChild(row);
     }
-    sec.appendChild(list);
+    fold.appendChild(list);
+    sec.appendChild(fold);
     return sec;
   }
 

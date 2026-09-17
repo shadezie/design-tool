@@ -67,6 +67,12 @@
   --tint-padding: rgba(45, 212, 160, 0.08);
   --tint-content: rgba(42, 81, 253, 0.22);
   --shadow: 0 12px 32px rgba(4, 9, 22, 0.55);
+
+  /* The built-in easings are too soft to read as intentional at these
+     durations. Only press feedback and hover use them: the card's contents
+     re-render on every hover, which is far too often to animate. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --press: 140ms;
 }
 
 .layer[data-theme="light"] {
@@ -166,14 +172,20 @@
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: var(--shadow);
   font-size: 12px;
   line-height: 1.5;
   scrollbar-width: thin;
+  scrollbar-color: var(--ring-line) transparent;
 }
-.card::-webkit-scrollbar { width: 8px; height: 8px; }
-.card::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+.card::-webkit-scrollbar { width: 10px; height: 10px; }
+.card::-webkit-scrollbar-track { background: transparent; }
+.card::-webkit-scrollbar-thumb {
+  background: var(--ring-line);
+  border: 3px solid var(--bg);
+  border-radius: 6px;
+}
 
 .card-head {
   position: sticky;
@@ -185,6 +197,19 @@
   padding: 9px 10px;
   background: var(--bg);
   border-bottom: 1px solid var(--line);
+}
+
+/* The header floats over scrolled content, so it needs to end in something
+   rather than just stop. */
+.card-head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 10px;
+  background: linear-gradient(var(--bg), transparent);
+  pointer-events: none;
 }
 
 .icon-btn {
@@ -200,9 +225,16 @@
   background: none;
   color: var(--muted);
   cursor: pointer;
+  transition: background var(--press) ease, color var(--press) ease,
+    transform var(--press) var(--ease-out);
 }
-.icon-btn:hover { background: var(--flash); color: var(--text); }
-.icon-btn.close:hover { background: var(--measure); color: #fff; }
+/* Touch devices fire hover on tap, so every hover state is gated. */
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover { background: var(--flash); color: var(--text); }
+  .icon-btn.close:hover { background: var(--measure); color: #fff; }
+}
+/* Press feedback: the control has to look like it heard the click. */
+.icon-btn:active { transform: scale(0.94); }
 .icon-btn svg { width: 14px; height: 14px; display: block; }
 
 .grip { cursor: grab; }
@@ -238,8 +270,13 @@
   color: var(--muted);
   font: 500 11px/1.5 var(--mono);
   cursor: pointer;
+  transition: background var(--press) ease, color var(--press) ease,
+    transform var(--press) var(--ease-out);
 }
-.units button:hover { color: var(--text); }
+@media (hover: hover) and (pointer: fine) {
+  .units button:hover { color: var(--text); }
+}
+.units button:active { transform: scale(0.94); }
 .units button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 
 /* The resize handle rides outside the card's scroll area, so it stays put no
@@ -279,9 +316,12 @@
 /* Four edge distances: 2x2 rather than four slivers. */
 .hero.is-4up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
+/* A hairline on top of the soft ground: on the dark theme the two grounds sit
+   close enough together that the tiles read as a smudge without one. */
 .tile {
-  padding: 8px 10px;
-  border-radius: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
   background: var(--bg-soft);
   overflow: hidden;
 }
@@ -328,36 +368,59 @@
   text-overflow: ellipsis;
 }
 
-.sec { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.sec { padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .sec:last-child { border-bottom: 0; }
 
 .sec-title {
-  margin-bottom: 8px;
+  margin-bottom: 9px;
   color: var(--muted);
-  font: 500 9px/1.4 var(--mono);
-  letter-spacing: 0.18em;
+  font: 600 9px/1.4 var(--sans);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 106px 1fr;
-  gap: 8px;
+  grid-template-columns: 104px 1fr;
+  gap: 10px;
   align-items: baseline;
-  padding: 1px 0;
+  padding: 2.5px 0;
 }
-.row dt { color: var(--muted); font: 400 11px/1.6 var(--mono); }
+
+/* Labels are prose and values are data, so they are set differently: sans for
+   the label, which is read as a word, and mono for the value, which is read as
+   a number and has to align with the number above it. Everything being mono
+   gave a label the same visual weight as the value it describes. */
+.row dt {
+  color: var(--muted);
+  font: 400 11px/1.6 var(--sans);
+  letter-spacing: 0;
+}
 .row dd {
-  font: 400 12px/1.5 var(--mono);
+  font: 450 11.5px/1.6 var(--mono);
   text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.copy { cursor: copy; border-radius: 3px; }
-.copy:hover { background: var(--flash); box-shadow: 0 0 0 3px var(--flash); }
-.copy.is-copied { background: var(--accent); color: #fff; box-shadow: 0 0 0 3px var(--accent); }
+/* The copy target extends past the text so the hit area is not exactly the
+   glyphs, and the confirmation is quick: it is feedback, not an event. */
+.copy {
+  cursor: copy;
+  border-radius: 4px;
+  transition: background var(--press) ease, color var(--press) ease,
+    box-shadow var(--press) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .copy:hover { background: var(--flash); box-shadow: 0 0 0 3px var(--flash); }
+}
+.copy.is-copied {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 0 3px var(--accent);
+  transition-duration: 0ms;
+}
 
 .is-hex { color: var(--accent-text); }
 
@@ -373,11 +436,56 @@
   vertical-align: baseline;
 }
 
+/* The live one: what a click will do right now. */
 .state-line {
-  margin-bottom: 9px;
   color: var(--text);
   font: 400 11px/1.5 var(--sans);
 }
+
+.sc-fold { margin-top: 9px; }
+
+.sc-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 3px 7px 3px 5px;
+  border-radius: 5px;
+  color: var(--muted);
+  font: 600 9px/1.4 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background var(--press) ease, color var(--press) ease;
+}
+.sc-summary::-webkit-details-marker { display: none; }
+
+/* The chevron is the affordance, so it is drawn rather than left to the
+   platform triangle, which sits at the wrong size and colour in both themes. */
+.sc-summary::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg) translate(-1px, -1px);
+  transition: transform 160ms var(--ease-out);
+}
+.sc-fold[open] .sc-summary::before {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sc-summary:hover { background: var(--flash); color: var(--text); }
+}
+.sc-summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sc-fold .sc { margin-top: 8px; }
 
 .sc {
   display: grid;
@@ -551,6 +659,11 @@ kbd {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 6px;
+}
+/* Only separate the pair from something above it; with no heading it is the
+   first thing in the section and a rule would be a line to nowhere. */
+.sec-title + .pair,
+.mlead-kind + .pair {
   margin-top: 9px;
   padding-top: 9px;
   border-top: 1px solid var(--line);
@@ -558,8 +671,9 @@ kbd {
 
 .pair-col {
   min-width: 0;
-  padding: 7px 8px;
-  border-radius: 5px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
   background: var(--bg-soft);
 }
 
@@ -623,6 +737,14 @@ kbd {
   margin: 0 0 7px;
   color: var(--muted);
   font: 400 11px/1.5 var(--sans);
+}
+
+/* Reduced motion means gentler, not none: the press and hover feedback here
+   is colour and a 6% scale, so only the chevron's rotation is worth dropping. */
+@media (prefers-reduced-motion: reduce) {
+  .sc-summary::before { transition-duration: 0ms; }
+  .icon-btn:active,
+  .units button:active { transform: none; }
 }
 
 /* ---------- measurement readout inside the card ---------- */

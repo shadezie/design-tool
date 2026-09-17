@@ -4,3 +4,6 @@ dist/
 .DS_Store
 dev/
 test/shots/
+.agents/
+.claude/
+skills-lock.json
