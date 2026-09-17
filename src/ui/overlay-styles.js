@@ -469,6 +469,133 @@ kbd {
 .sbox-note dt { color: var(--muted); font: 400 11px/1.6 var(--mono); }
 .sbox-note dd { font: 400 12px/1.5 var(--mono); text-align: right; }
 
+
+/* ---------- design tokens ---------- */
+
+/* The token name is the answer, so it gets the accent and the raw value drops
+   to a quiet second line underneath it. */
+.row dd.has-token {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  white-space: normal;
+}
+
+.token {
+  max-width: 100%;
+  color: var(--accent-text);
+  font: 500 11.5px/1.4 var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A value match is a guess: the same hex can belong to two tokens. The dotted
+   underline says "probably this one" without a second line of explanation. */
+.token.is-guess {
+  text-decoration: underline dotted var(--line);
+  text-underline-offset: 3px;
+}
+
+.token-raw {
+  color: var(--muted);
+  font: 400 10.5px/1.4 var(--mono);
+}
+
+/* ---------- media ---------- */
+
+.media-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.media-kind {
+  color: var(--text);
+  font: 500 11.5px/1.4 var(--sans);
+}
+
+.media-format {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font: 500 9px/1.3 var(--mono);
+  letter-spacing: 0.06em;
+}
+
+/* ---------- the two measured elements ---------- */
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.pair-col {
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 5px;
+  background: var(--bg-soft);
+}
+
+.pair-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  min-width: 0;
+}
+
+/* Same colours as the on-page highlights, so the column and the box it
+   describes are obviously the same thing. */
+.pair-badge {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  color: #fff;
+  font: 600 8px/13px var(--mono);
+  text-align: center;
+}
+.pair-badge.is-a { background: var(--hl-a); }
+.pair-badge.is-b { background: var(--hl-b); color: #1A1200; }
+
+.pair-name {
+  min-width: 0;
+  color: var(--muted);
+  font: 400 9.5px/1.3 var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pair-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 1px 0;
+}
+
+.pair-key {
+  color: var(--muted);
+  font: 400 9.5px/1.5 var(--mono);
+}
+
+.pair-val {
+  color: var(--text);
+  font: 500 10.5px/1.5 var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---------- measurement readout inside the card ---------- */
 
 .mkind { margin-bottom: 6px; color: var(--muted); font-size: 11px; }

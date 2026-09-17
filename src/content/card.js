@@ -84,10 +84,39 @@
     return node;
   }
 
-  function row(parent, label, value, { copy = true, swatch = null } = {}) {
+  function row(parent, label, value, { copy = true, swatch = null, token = null } = {}) {
     if (value == null || value === '') return;
     const wrap = el('div', 'row');
     wrap.appendChild(el('dt', null, label));
+
+    // With a token, the name is the answer and the raw value is the evidence,
+    // so the name leads and the value drops to a second line. Both copy
+    // independently: you paste the token into code, the value into Figma.
+    if (token) {
+      const dd = el('dd', 'has-token');
+      const name = el('span', `token${token.exact ? '' : ' is-guess'}`, token.name);
+      name.title = token.exact
+        ? `Copy "var(${token.name})"`
+        : `Matched by value${token.ambiguous ? ', more than one token shares it' : ''}. ` +
+          `Copy "var(${token.name})"`;
+      copyable(name, `var(${token.name})`);
+      dd.appendChild(name);
+
+      const raw = el('span', 'token-raw');
+      if (swatch) {
+        const chip = el('span', 'swatch');
+        chip.style.background = swatch;
+        raw.appendChild(chip);
+      }
+      raw.appendChild(document.createTextNode(String(value)));
+      copyable(raw, String(value));
+      dd.appendChild(raw);
+
+      wrap.appendChild(dd);
+      parent.appendChild(wrap);
+      return;
+    }
+
     const dd = el('dd', /^#[0-9A-F]{3,8}$/i.test(String(value)) ? 'is-hex' : null);
     if (swatch) {
       const chip = el('span', 'swatch');
@@ -98,6 +127,17 @@
     if (copy) copyable(dd, String(value));
     wrap.appendChild(dd);
     parent.appendChild(wrap);
+  }
+
+  /** Ask the token map about one property, tolerating a page with no tokens. */
+  function tokenFor(target, prop, computedValue) {
+    try {
+      return DT.tokens?.lookup(target, prop, computedValue) || null;
+    } catch {
+      // A page can have stylesheets that throw in ways worth surviving; a
+      // missing token name is never worth losing the whole card over.
+      return null;
+    }
   }
 
   function identityLine(identity) {
@@ -238,7 +278,11 @@
 
       card.appendChild(heroTiles(data, fmt));
 
-      if (opts.measurement) card.appendChild(measurementSection(opts.measurement, fmt));
+      if (data.media) card.appendChild(mediaSection(data.media, fmt));
+
+      if (opts.measurement) {
+        card.appendChild(measurementSection(opts.measurement, fmt, opts.pair));
+      }
 
       const type = data.typography;
       if (type.showsType) {
@@ -268,7 +312,12 @@
         if (type.transform !== 'none') row(sec, 'Transform', type.transform);
         if (type.decoration && type.decoration !== 'none') row(sec, 'Decoration', type.decoration);
         row(sec, 'Align', type.align);
-        if (type.color) row(sec, 'Color', type.color.hex, { swatch: type.color.css });
+        if (type.color) {
+          row(sec, 'Color', type.color.hex, {
+            swatch: type.color.css,
+            token: tokenFor(data.el, 'color', type.color.css),
+          });
+        }
         card.appendChild(sec);
       }
 
@@ -296,7 +345,10 @@
       const fillSec = section('Fill & effects');
       let hasFill = false;
       if (fill.background) {
-        row(fillSec, 'Background', fill.background.hex, { swatch: fill.background.css });
+        row(fillSec, 'Background', fill.background.hex, {
+          swatch: fill.background.css,
+          token: tokenFor(data.el, 'background-color', fill.background.css),
+        });
         hasFill = true;
       }
       if (fill.backgroundImage) {
@@ -312,7 +364,12 @@
           fillSec,
           'Border',
           `${fmt(fill.borderWidth.top)} ${fill.borderStyle}${fill.borderColor ? ` ${fill.borderColor.hex}` : ''}`,
-          { swatch: fill.borderColor?.css }
+          {
+            swatch: fill.borderColor?.css,
+            token: fill.borderColor
+              ? tokenFor(data.el, 'border-color', fill.borderColor.css)
+              : null,
+          }
         );
         hasFill = true;
       }
@@ -331,7 +388,7 @@
     },
   };
 
-  function measurementSection(measurement, fmt) {
+  function measurementSection(measurement, fmt, pair) {
     const sec = section('Measurement');
     sec.appendChild(el('p', 'mkind', measurement.note));
     for (const value of measurement.values) {
@@ -342,6 +399,126 @@
       wrap.appendChild(dd);
       sec.appendChild(wrap);
     }
+    if (pair?.a && pair?.b) sec.appendChild(pairSummary(pair));
+    return sec;
+  }
+
+  /**
+   * What the two measured elements actually are.
+   *
+   * The distance on its own is half an answer: "24px between what?" is the next
+   * question every time, and scrubbing back and forth between A and B to read
+   * each one's spec is how the measurement gets lost. Both specs sit under the
+   * number instead, in the same A/B colours as the on-page highlights.
+   */
+  function pairSummary(pair) {
+    const wrap = el('div', 'pair');
+    for (const [key, data] of [['a', pair.a], ['b', pair.b]]) {
+      const col = el('div', `pair-col is-${key}`);
+
+      const head = el('div', 'pair-head');
+      head.appendChild(el('span', `pair-badge is-${key}`, key.toUpperCase()));
+      head.appendChild(el('span', 'pair-name', shortIdentity(data.identity)));
+      col.appendChild(head);
+
+      // Same rule as the hero tiles: text gets its type spec, anything else
+      // gets its box, because that is what you are comparing in each case.
+      const fmt = (px) => units.format(px, data.typography.size);
+      const facts = data.typography.hasText
+        ? [
+            ['Size', fmt(data.typography.size)],
+            ['Weight', `${data.typography.weight} ${data.typography.weightName}`],
+            [
+              'Line',
+              data.typography.lineHeightPx ? fmt(data.typography.lineHeightPx) : 'auto',
+            ],
+          ]
+        : [
+            ['W', fmt(data.box.width)],
+            ['H', fmt(data.box.height)],
+            ...(data.layout.isContainer ? [['Gap', fmt(data.layout.rowGap)]] : []),
+          ];
+
+      for (const [label, value] of facts) {
+        const line = el('div', 'pair-row');
+        line.appendChild(el('span', 'pair-key', label));
+        const val = el('span', 'pair-val', value);
+        copyable(val, value);
+        line.appendChild(val);
+        col.appendChild(line);
+      }
+
+      if (data.media) {
+        const line = el('div', 'pair-row');
+        line.appendChild(el('span', 'pair-key', 'Media'));
+        line.appendChild(el('span', 'pair-val', data.media.format || data.media.kind));
+        col.appendChild(line);
+      }
+
+      wrap.appendChild(col);
+    }
+    return wrap;
+  }
+
+  function shortIdentity(identity) {
+    return `${identity.tag}${identity.id}${identity.classes}`;
+  }
+
+  /**
+   * Media, stated the way you would ask about it.
+   *
+   * Format first, because "is this still a 2MB PNG" is the question. Then the
+   * asset's own size against the size it is drawn at, since a 3x asset in a 1x
+   * slot and a blurry 0.5x one are both bugs and neither is visible in the DOM.
+   */
+  function mediaSection(media, fmt) {
+    const sec = section('Media');
+
+    const head = el('div', 'media-head');
+    head.appendChild(el('span', 'media-kind', media.kind));
+    if (media.format) {
+      const chip = el('span', 'media-format', media.format);
+      copyable(chip, media.format);
+      head.appendChild(chip);
+    }
+    sec.appendChild(head);
+
+    if (media.source) row(sec, 'File', truncate(media.source, 30));
+
+    if (media.natural && media.natural.width > 0) {
+      row(sec, 'Intrinsic', `${Math.round(media.natural.width)} x ${Math.round(media.natural.height)}`);
+    }
+    if (media.rendered && media.rendered.width > 0) {
+      row(sec, 'Rendered', `${fmt(media.rendered.width)} x ${fmt(media.rendered.height)}`);
+    }
+    if (media.density) {
+      // Under 1x is upscaling, which is the one that actually looks broken.
+      const label = media.density < 0.95 ? ' upscaled' : media.density >= 1.9 ? ' retina' : '';
+      row(sec, 'Asset scale', `${round(media.density)}x${label}`, { copy: false });
+    }
+
+    if (media.duration != null) row(sec, 'Duration', `${round(media.duration)}s`);
+    if (media.kind && media.kind.startsWith('Video')) {
+      const flags = [];
+      if (media.autoplay) flags.push('autoplay');
+      if (media.loop) flags.push('loop');
+      if (media.muted) flags.push('muted');
+      if (media.controls) flags.push('controls');
+      row(sec, 'Playback', `${media.playing ? 'playing' : 'paused'}${flags.length ? `, ${flags.join(', ')}` : ''}`, {
+        copy: false,
+      });
+      if (media.poster) row(sec, 'Poster', truncate(media.poster, 24));
+    }
+
+    if (media.fit) row(sec, 'Fit', media.fit, { copy: false });
+    if (media.responsive) row(sec, 'Responsive', 'srcset', { copy: false });
+    if (media.lazy) row(sec, 'Loading', 'lazy', { copy: false });
+    if (media.kind === 'Image' || media.kind === 'Image (picture)') {
+      row(sec, 'Alt text', media.hasAlt ? media.alt || 'empty (decorative)' : 'missing', {
+        copy: false,
+      });
+    }
+
     return sec;
   }
 

@@ -92,12 +92,14 @@
 
     // The measurement follows the live rects, so it stays true while scrolling.
     let result = null;
+    let partner = null;
     if (rectA) {
       const otherEl = state === 'lockedAB' ? elB : hoverEl !== elA ? hoverEl : null;
       const against = state === 'lockedAB' ? rectB : hoverEl && hoverEl !== elA ? rectHover : null;
       if (against) {
         const [outerRect, innerRect] = insetForBorder(elA, rectA, otherEl, against);
         result = measure(outerRect, innerRect);
+        partner = otherEl;
       }
     }
 
@@ -115,7 +117,7 @@
       overlay.setMeasurement(result, fmt);
     }
 
-    renderCard(data, result);
+    renderCard(data, result, partner);
     overlay.showCard(true);
 
     const { left, top } = card.position(overlay.card);
@@ -160,18 +162,25 @@
   }
 
   /** Rebuild the card only when something it displays actually changed. */
-  function renderCard(data, result) {
+  function renderCard(data, result, partner) {
     const measurementKey = result
       ? `${result.kind}:${result.values.map((v) => Math.round(v.px * 10)).join(',')}`
       : '';
-    const signature = `${state}|${idOf(data.el)}|${units.mode}|${measurementKey}|${Math.round(
+    // The partner's identity is part of the signature now that the card
+    // describes it: two different elements can sit the same distance away.
+    const signature = `${state}|${idOf(data.el)}|${idOf(partner)}|${units.mode}|${measurementKey}|${Math.round(
       data.box.width
     )}x${Math.round(data.box.height)}`;
     if (signature === cardSignature) return;
     cardSignature = signature;
 
+    // Reading the partner's styles is only worth it when there is something to
+    // compare against, which is why it happens here and not in the paint loop.
+    const pair = result && partner ? { a: data, b: styles.read(partner) } : null;
+
     card.render(overlay.card, data, {
       measurement: result,
+      pair,
       state,
       onUnitChange: () => {
         cardSignature = '';
@@ -258,6 +267,9 @@
 
   function onResize() {
     units.refreshRoot();
+    // Custom properties are routinely redefined per breakpoint, so the token
+    // map is only true for the width it was built at.
+    DT.tokens?.invalidate();
     cardSignature = '';
   }
 
@@ -272,6 +284,8 @@
     units.adopt();
     card.adopt();
     units.refreshRoot();
+    // The page may have swapped themes or loaded more CSS since last time.
+    DT.tokens?.invalidate();
 
     overlay.mount();
     card.attachResizer(overlay.resizer, overlay.card);

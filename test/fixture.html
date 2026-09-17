@@ -1,5 +1,13 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Fixture</title>
 <style>
+  /* A design-token palette, the way a real system declares one. #tokened uses
+     var() so the exact path can find it; #valued hardcodes the same hex so the
+     reverse-lookup path has something only it can resolve. */
+  :root {
+    --color-brand: #2a51fd;
+    --color-surface: #fbfcfd;
+    --space-md: 16px;
+  }
   html { font-size: 62.5%; }
   body { font-family: Inter, system-ui, sans-serif; font-size: 1.6rem; margin: 0; padding: 40px; background: #f6f7f9; }
   h1 { font-size: 3.2rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; color: #101418; margin-bottom: 24px; }
@@ -25,6 +33,11 @@
   .bordered { width: 300px; margin-top: 32px; padding: 12px; border: 1px solid #c8ced6;
               border-radius: 8px; background: #fff; }
   .bordered > div { height: 60px; background: #dbe4f7; border-radius: 4px; }
+
+  #tokened { margin-top: 32px; padding: 12px; color: var(--color-brand); font-size: 1.6rem; }
+  #valued { padding: 12px; color: #2a51fd; font-size: 1.6rem; }
+
+  .media { display: flex; gap: 24px; margin-top: 32px; align-items: flex-start; }
 </style></head><body>
 <h1 id="title">Design QA fixture</h1>
 <div class="grid" id="grid">
@@ -47,4 +60,22 @@
   </div>
 </section>
 <div class="bordered" id="bordered"><div id="inner"></div></div>
+
+<p id="tokened">Colour set through var(--color-brand)</p>
+<p id="valued">Same colour, written as a raw hex</p>
+
+<section class="media">
+  <!-- A real bitmap, 4x4 red PNG, drawn at 80px so the asset scale is a
+       fraction: exactly the upscaling case the Media block is there to catch. -->
+  <img id="png" width="80" height="80" alt="red square"
+    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAFklEQVR4nGP8z4AATAwMDAwMDAwMDAwAEQkBAyIsAKEAAAAASUVORK5CYII=">
+  <!-- Data URIs rather than files: the format is still stated in the URI, so
+       the readout has something real to parse, and nothing 404s into the
+       console-error check. -->
+  <video id="clip" width="160" height="90" autoplay muted loop playsinline
+    poster="data:image/jpeg;base64,/9j/4AAQSkZJRg=="
+    src="data:video/webm;base64,GkXfow=="></video>
+  <video id="player" width="160" height="90" controls
+    src="data:video/mp4;base64,AAAAIGZ0eXA="></video>
+</section>
 </body></html>

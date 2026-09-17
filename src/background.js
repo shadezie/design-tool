@@ -9,6 +9,7 @@ const CONTENT_FILES = [
   'src/ui/overlay-styles.js',
   'src/content/prefs.js',
   'src/content/units.js',
+  'src/content/tokens.js',
   'src/content/styles.js',
   'src/content/measure.js',
   'src/content/overlay.js',

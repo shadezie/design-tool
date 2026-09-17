@@ -328,3 +328,54 @@ files.
   moving at all.
 - Design token matching: flag when a value is off-scale for the site's own
   spacing or type ramp.
+
+## Tokens are resolved two ways, and the guess is marked as one
+
+Reading the CSS rule for a literal `var(--token)` is the honest answer: it is
+what the page actually wrote. It is also unavailable on any site serving its CSS
+from another origin, because `.cssRules` throws there, and that is a large share
+of real sites.
+
+So there is a second path that matches computed values against every custom
+property the page defines. It works everywhere, and it is a guess: two tokens
+can hold the same hex, and a value that merely coincides with a token is not
+evidence the page used it.
+
+Both are shown the same way, but a value match gets a dotted underline. Marking
+the weaker answer is better than suppressing it, and much better than presenting
+it as though it were read from the rule.
+
+## CSSStyleRule is a grouping rule now
+
+The first token implementation found zero tokens on every page. The cause was
+`if (rule.cssRules) { recurse; continue; }`, which reads as "this is an @media
+block, its declarations are in the children". Since CSS nesting shipped,
+`CSSStyleRule` implements `CSSGroupingRule`, so **every** style rule reports a
+`cssRules` list. It is usually empty, but it is always truthy, so every rule
+took the group branch and no declaration was ever scanned.
+
+A rule can declare properties and contain rules at the same time. The fix was
+to stop treating those as alternatives.
+
+## The measurement says what it measured between
+
+A distance on its own is half an answer. "24px" invites "between what?", and
+answering it meant clicking each element in turn and losing the measurement to
+find out.
+
+Both elements are now described under the number, in the same A/B colours as
+their on-page highlights, using the same rule the hero tiles use: text gets its
+type spec, anything else gets its box. The partner's styles are read only when
+a measurement exists, so hovering costs nothing extra.
+
+## Media is a question about the asset, not the element
+
+`<img>` in the DOM tells you almost nothing a designer is checking. The
+questions are always: is this a video or an image, what format is actually being
+served, and is the asset the right size for the box.
+
+Format comes from `currentSrc` rather than `src`, because with `srcset` those
+differ and only one of them is the file the visitor downloads. Asset scale is
+intrinsic over rendered, which catches both the blurry upscale and the 3x asset
+in a 100px slot. And a muted autoplay loop with no controls is called a
+background loop, because calling it "video" implies something a visitor plays.

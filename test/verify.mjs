@@ -50,6 +50,39 @@ const arm = () =>
 
 const { width: VW } = page.viewportSize();
 
+/**
+ * Read the card's text.
+ *
+ * The overlay lives in a closed shadow root, so page.evaluate cannot reach it
+ * and every other check here probes pixels instead. executeScript with
+ * world: 'ISOLATED' lands in the same world as the content script, which is
+ * the one place `window.__designtool` exists. No test-only hook in the
+ * shipped code, and the closed root stays closed to the page.
+ */
+const cardText = () =>
+  sw.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      world: 'ISOLATED',
+      func: () => window.__designtool?.overlay?.card?.textContent || '',
+    });
+    return res.result;
+  });
+
+/**
+ * Scroll an element into view, then hand back a viewport point inside it.
+ * boundingBox() is viewport-relative, so a box below the fold names
+ * coordinates the mouse can never reach.
+ */
+async function reach(selector, dx = 40, dy = 20) {
+  const node = page.locator(selector).first();
+  await node.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
+  const box = await node.boundingBox();
+  return { x: box.x + dx, y: box.y + dy, box };
+}
+
 /** Move like a hand: many small steps, not a teleport. */
 async function glide(to, steps = 25) {
   await page.mouse.move(to.x, to.y, { steps });
@@ -271,6 +304,85 @@ await glide({ x: c1.x + 40, y: c1.y + 40 });
 await page.mouse.click(c1.x + 40, c1.y + 40);
 await glide({ x: c2.x + 40, y: c2.y + 40 });
 await page.screenshot({ path: `${OUT}/gap.png` });
+
+
+// ---- media ---------------------------------------------------------------
+// The measurement above left an element locked, and a locked card describes
+// that element however you hover. Back to armed first.
+await page.keyboard.press('Escape');
+await page.waitForTimeout(200);
+
+// A 4x4 PNG drawn at 80px. Format, intrinsic size and the fact that it is
+// being upscaled are all things the DOM states nowhere in one place.
+await glide(await reach('#png', 40, 40));
+const pngCard = await cardText();
+check('media block names the format', pngCard.includes('PNG'), pngCard.slice(0, 80));
+check('media block reports the intrinsic size', /4\s*x\s*4/.test(pngCard));
+check('media block flags an upscaled asset', pngCard.includes('upscaled'));
+await page.screenshot({ path: `${OUT}/media-image.png` });
+
+await glide(await reach('#clip', 60, 40));
+const clipCard = await cardText();
+check(
+  'autoplay + muted + loop reads as a background video',
+  clipCard.includes('background loop'),
+  clipCard.slice(0, 80)
+);
+check('video format comes from the source', clipCard.includes('WEBM'));
+check('playback flags are listed', clipCard.includes('autoplay') && clipCard.includes('muted'));
+
+await glide(await reach('#player', 60, 40));
+const playerCard = await cardText();
+check(
+  'a video with controls is not called a background loop',
+  playerCard.includes('Video') && !playerCard.includes('background loop')
+);
+check('MP4 is reported as MP4', playerCard.includes('MP4'));
+await page.screenshot({ path: `${OUT}/media-video.png` });
+
+// ---- design tokens -------------------------------------------------------
+// One element sets its colour through var(), the other hardcodes the same hex.
+// The first is found by reading the rule, the second only by matching values,
+// so between them they cover both resolution paths.
+await glide(await reach('#tokened', 60, 10));
+const tokenedCard = await cardText();
+check('a var() colour reports its token name', tokenedCard.includes('--color-brand'), tokenedCard.slice(0, 120));
+check('the raw value is still shown next to it', tokenedCard.includes('#2A51FD'));
+await page.screenshot({ path: `${OUT}/token-exact.png` });
+
+await glide(await reach('#valued', 60, 10));
+const valuedCard = await cardText();
+check(
+  'a hardcoded colour is matched back to its token',
+  valuedCard.includes('--color-brand'),
+  valuedCard.slice(0, 120)
+);
+
+// A colour the palette does not define must stay a plain hex: inventing a
+// token name for it would be worse than showing nothing.
+await glide(await reach('.tile-d', 40, 8));
+const plainCard = await cardText();
+check('a colour with no token stays a raw hex', !plainCard.includes('--color-'), plainCard.slice(0, 120));
+
+// ---- both measured elements are described --------------------------------
+// A is the h1 (text), B is a flex container, so the two columns should carry
+// different vocabularies: a type spec against a box.
+// No Escape here: the state is already armed, and Escape while armed exits
+// the tool rather than clearing a selection.
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.waitForTimeout(200);
+const titleAt = await reach('#title', 60, 20);
+await glide(titleAt);
+await page.mouse.click(titleAt.x, titleAt.y);
+await page.waitForTimeout(250);
+await glide(await reach('#c1', 40, 40));
+const pairCard = await cardText();
+check('the measurement names both elements', pairCard.includes('h1#title') && pairCard.includes('.card'), pairCard.slice(0, 160));
+check('the text side shows its type spec', pairCard.includes('Size') && pairCard.includes('Weight'));
+check('the box side shows width and height', /W[\d.]/.test(pairCard) && /H[\d.]/.test(pairCard));
+await page.screenshot({ path: `${OUT}/pair-summary.png` });
+await page.keyboard.press('Escape');
+await page.waitForTimeout(200);
 
 // ---- the page stays inert while armed ------------------------------------
 const link = await page.locator('#link').boundingBox();

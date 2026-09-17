@@ -17,6 +17,14 @@ Built for designers doing design QA, not for reading CSS.
   extension lines so it is obvious which edges the number spans.
 - **A spacing box.** Margin, border, padding and content as nested rings, with
   the container's `gap` stated next to its padding.
+- **Design token names instead of raw values.** If the page defines a token
+  system, a colour reads as `--color-brand`, with the hex underneath. Copy
+  either one.
+- **Media, identified.** Whether it is a video or an image, what format it is
+  actually being served in, and whether the asset is the right size for the box
+  it is drawn in.
+- **Both sides of a measurement.** The distance, plus the spec of each of the
+  two elements it spans.
 - **px, rem and em**, converted everywhere at once. `rem` resolves against the
   page's real root font-size, not an assumed 16px.
 - **Click any value to copy it.**
@@ -94,6 +102,40 @@ instead of on what you are looking at.
   cursor. Same idea as selecting through a group in Figma.
 - `Alt` + scroll then walks up and down from wherever you landed.
 
+## Design tokens
+
+If the page is built on CSS custom properties, the card names the token rather
+than the value it resolved to: `--color-brand` instead of `#2A51FD`, with the
+hex still shown underneath. Click the name to copy `var(--color-brand)`, click
+the hex to copy `#2A51FD`.
+
+Two things find the token, and they cover different ground:
+
+- **Reading the rule.** The stylesheet rule that styles the element is checked
+  for a literal `var(--token)`. Exact, but `.cssRules` throws on a cross-origin
+  stylesheet, so a site serving CSS from a CDN gives this path nothing.
+- **Matching the value.** Every custom property the page defines is resolved to
+  its computed value and matched by value. Works wherever the CSS came from.
+
+A value match is a guess, since two tokens can share a hex, and it is marked
+with a dotted underline to say so. When neither finds anything, the raw value is
+shown as before.
+
+## Media
+
+Hover an image or video and the card says which it is, what format it is being
+served in, and how the asset compares to the box it is drawn in.
+
+- **Format** comes from `currentSrc`, the file the browser actually chose out of
+  `srcset`, not the `src` fallback. So a `<picture>` serving WebP reports WebP.
+- **Asset scale** is the intrinsic size over the rendered size. Below 1x is
+  upscaling and looks soft; 2x is a retina asset; 3x in a small slot is wasted
+  bytes.
+- **A video that autoplays, loops and is muted with no controls** is reported as
+  a background loop, because it behaves nothing like a video someone plays.
+- Images also report `srcset`, lazy loading, `object-fit` and whether they have
+  alt text.
+
 ## What the measurements mean
 
 ![The card reading type styles](docs/readme/typography.png)
@@ -108,6 +150,10 @@ instead of on what you are looking at.
 - **Elements offset on both axes**: the horizontal and vertical components
   separately, not a diagonal nobody designs against.
 
+Under the number, both measured elements are described side by side in the same
+A/B colours as the on-page highlights: the type spec for text, width and height
+for a box. "24px between what?" is the next question every time.
+
 ## Known limits
 
 - **Iframes.** The tool runs inside each frame independently. Measuring an
@@ -116,7 +162,10 @@ instead of on what you are looking at.
   The card is the source of truth for converted values.
 - **Strict CSP sites** may refuse the bundled fonts, and the card falls back to
   system fonts. Everything else still works.
-- Canvas, WebGL and video are inspected as the element that contains them.
+- **Canvas and WebGL** are inspected as the element that contains them; there
+  is no way to reach inside what they draw.
+- **Token matching by value** cannot tell two tokens with the same hex apart.
+  The dotted underline marks a match it inferred rather than read.
 
 ## Development
 
@@ -179,6 +228,7 @@ src/content/
   inspect.js               event capture and element picking
   styles.js                computed styles into designer vocabulary
   units.js                 px / rem / em conversion
+  tokens.js                design token names for computed values
   measure.js               gap geometry, pure functions
   overlay.js               closed shadow root, highlights, dimension lines
   card.js                  the card

@@ -108,6 +108,126 @@
     return false;
   }
 
+
+  /** "…/hero.webp?v=2" -> "WEBP". Query strings and data URIs included. */
+  function formatOf(url) {
+    if (!url) return null;
+    const data = /^data:([\w.+-]+)\/([\w.+-]+)/i.exec(url);
+    if (data) return data[2].toUpperCase().replace('SVG+XML', 'SVG');
+    const clean = url.split(/[?#]/)[0];
+    const ext = /\.([a-z0-9]{2,5})$/i.exec(clean);
+    if (!ext) return null;
+    const raw = ext[1].toUpperCase();
+    return raw === 'JPEG' ? 'JPG' : raw;
+  }
+
+  function sourceName(url) {
+    if (!url) return null;
+    if (url.startsWith('data:')) return 'inline data URI';
+    const clean = url.split(/[?#]/)[0];
+    return clean.slice(clean.lastIndexOf('/') + 1) || clean;
+  }
+
+  /**
+   * What kind of media is this, really.
+   *
+   * During QA the questions are always the same: is this a video or an image,
+   * is it being served in a modern format, and is the asset the right size for
+   * the box it is in. A 2400px JPEG in a 300px slot is the single most common
+   * thing a designer catches and DevTools states nowhere in one place.
+   */
+  function readMedia(el) {
+    const tag = el.tagName.toLowerCase();
+    const cs = getComputedStyle(el);
+
+    if (tag === 'video') return videoInfo(el, cs);
+    if (tag === 'img') return imageInfo(el, cs);
+    if (tag === 'picture') {
+      const img = el.querySelector('img');
+      return img ? imageInfo(img, getComputedStyle(img), 'picture') : null;
+    }
+    if (tag === 'svg') {
+      return { kind: 'Vector', format: 'SVG', inline: true, fit: null };
+    }
+    if (tag === 'canvas') {
+      return {
+        kind: 'Canvas',
+        format: null,
+        natural: { width: el.width, height: el.height },
+        rendered: { width: el.clientWidth, height: el.clientHeight },
+        fit: null,
+      };
+    }
+
+    // A CSS background is media too, and it is where hero images usually live.
+    const bg = cs.backgroundImage;
+    if (bg && bg !== 'none') {
+      const url = /url\(["']?([^"')]+)["']?\)/.exec(bg);
+      if (url) {
+        return {
+          kind: 'Background image',
+          format: formatOf(url[1]),
+          source: sourceName(url[1]),
+          fit: cs.backgroundSize,
+          position: cs.backgroundPosition,
+        };
+      }
+      if (/gradient/i.test(bg)) return { kind: 'Gradient', format: null, fit: null };
+    }
+    return null;
+  }
+
+  function imageInfo(img, cs, via) {
+    // currentSrc is what the browser actually chose out of srcset, which is the
+    // file the visitor downloads. src is only the fallback.
+    const url = img.currentSrc || img.src || '';
+    const natural = { width: img.naturalWidth || 0, height: img.naturalHeight || 0 };
+    const rect = img.getBoundingClientRect();
+    const rendered = { width: rect.width, height: rect.height };
+    const density = rendered.width > 0 && natural.width > 0 ? natural.width / rendered.width : null;
+
+    return {
+      kind: via === 'picture' ? 'Image (picture)' : 'Image',
+      format: formatOf(url),
+      source: sourceName(url),
+      natural,
+      rendered,
+      density,
+      responsive: !!(img.srcset || img.closest('picture')?.querySelector('source')),
+      lazy: img.loading === 'lazy',
+      alt: img.alt ? img.alt : null,
+      hasAlt: img.hasAttribute('alt'),
+      fit: cs.objectFit !== 'fill' ? cs.objectFit : null,
+      position: cs.objectPosition,
+    };
+  }
+
+  function videoInfo(video, cs) {
+    const sources = Array.from(video.querySelectorAll('source'));
+    const url = video.currentSrc || video.src || sources[0]?.src || '';
+    const rect = video.getBoundingClientRect();
+
+    // autoplay + muted + loop + no controls is the signature of a decorative
+    // background video, which behaves nothing like a video a visitor plays.
+    const decorative = video.autoplay && video.muted && video.loop && !video.controls;
+
+    return {
+      kind: decorative ? 'Video (background loop)' : 'Video',
+      format: formatOf(url) || sources[0]?.type?.split('/')[1]?.toUpperCase() || null,
+      source: sourceName(url),
+      natural: { width: video.videoWidth || 0, height: video.videoHeight || 0 },
+      rendered: { width: rect.width, height: rect.height },
+      duration: Number.isFinite(video.duration) ? video.duration : null,
+      playing: !video.paused && !video.ended,
+      autoplay: video.autoplay,
+      loop: video.loop,
+      muted: video.muted,
+      controls: video.controls,
+      poster: video.poster ? sourceName(video.poster) : null,
+      fit: cs.objectFit !== 'fill' ? cs.objectFit : null,
+    };
+  }
+
   const REPLACED = new Set(['img', 'svg', 'video', 'canvas', 'iframe', 'object', 'embed', 'picture']);
 
   /**
@@ -128,6 +248,7 @@
     parseShadow,
     splitTopLevel,
     uniform,
+    formatOf,
 
     /** @param {Element} el */
     read(el) {
@@ -158,6 +279,7 @@
         el,
         rect,
         identity: describe(el),
+        media: readMedia(el),
 
         typography: {
           hasText: hasOwnText(el),

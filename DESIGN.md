@@ -281,3 +281,34 @@ websites, which the icon never has to do.
 Before adding a row, ask whether a designer would check it during QA. Before
 adding a section, ask whether it can be omitted when empty. Before adding a
 colour, use one of the three that already exist.
+
+## Token rows
+
+A token name is the answer and the raw value is the evidence, so the name leads
+and the value sits under it, quieter.
+
+| Part | Spec |
+| --- | --- |
+| Token name | 11.5px/500 mono, `--accent-text` |
+| Value match | the same, with `underline dotted var(--line)`, 3px offset |
+| Raw value | 10.5px/400 mono, `--muted`, right-aligned under the name |
+
+Both halves copy independently: the name yields `var(--token)` for code, the
+value yields the hex for Figma.
+
+## Media chip
+
+| Part | Spec |
+| --- | --- |
+| Kind | 11.5px/500 sans, `--text` |
+| Format chip | 9px/500 mono, white on `--accent`, 4px radius, `2px 6px` |
+
+The format is the one thing being looked for, so it is the only chip on the card
+that gets a filled accent ground.
+
+## A/B pair columns
+
+Two equal columns on `--bg-soft`, 5px radius, 8px gutter, under a hairline rule.
+Each carries a 13px square badge in the same colour as that element's on-page
+highlight (`--hl-a`, `--hl-b`), so the column and the box it describes are
+obviously the same thing. Keys are 9.5px `--muted`, values 10.5px/500 `--text`.
