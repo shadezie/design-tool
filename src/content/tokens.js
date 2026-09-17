@@ -31,6 +31,16 @@
   const MAX_RULES = 20000;
 
   /**
+   * Values too common for a match to mean anything.
+   *
+   * Almost every system defines a token that happens to be pure white or pure
+   * black, so every white label on the page would claim --color-surface and be
+   * wrong. A value match is only evidence when the value is distinctive; an
+   * exact var() read still reports these, because there the page said so.
+   */
+  const TOO_COMMON = new Set(['c:#FFFFFF', 'c:#000000', 'l:0']);
+
+  /**
    * Recursively collect custom property names from a stylesheet or group.
    *
    * A rule can both declare properties and contain rules: since CSS nesting,
@@ -275,7 +285,7 @@
       if (precise) return { ...precise, ambiguous: false };
 
       const key = keyFor(computed);
-      if (!key) return null;
+      if (!key || TOO_COMMON.has(key)) return null;
       const list = byValue.get(key);
       if (!list || !list.length) return null;
       return { name: list[0].name, exact: false, ambiguous: list.length > 1 };

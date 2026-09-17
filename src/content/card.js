@@ -84,10 +84,10 @@
     return node;
   }
 
-  function row(parent, label, value, { copy = true, swatch = null, token = null } = {}) {
+  function row(parent, label, value, { copy = true, swatch = null, token = null, wrap = false } = {}) {
     if (value == null || value === '') return;
-    const wrap = el('div', 'row');
-    wrap.appendChild(el('dt', null, label));
+    const line = el('div', 'row');
+    line.appendChild(el('dt', null, label));
 
     // With a token, the name is the answer and the raw value is the evidence,
     // so the name leads and the value drops to a second line. Both copy
@@ -112,12 +112,19 @@
       copyable(raw, String(value));
       dd.appendChild(raw);
 
-      wrap.appendChild(dd);
-      parent.appendChild(wrap);
+      line.appendChild(dd);
+      parent.appendChild(line);
       return;
     }
 
-    const dd = el('dd', /^#[0-9A-F]{3,8}$/i.test(String(value)) ? 'is-hex' : null);
+    // A value longer than the column, like a list of playback flags, is worth
+    // two lines. Truncating it to "paused, autoplay, loop, m..." says less
+    // than nothing.
+    const classes = [
+      /^#[0-9A-F]{3,8}$/i.test(String(value)) ? 'is-hex' : null,
+      wrap ? 'is-wrap' : null,
+    ].filter(Boolean).join(' ');
+    const dd = el('dd', classes || null);
     if (swatch) {
       const chip = el('span', 'swatch');
       chip.style.background = swatch;
@@ -125,8 +132,8 @@
     }
     dd.appendChild(document.createTextNode(String(value)));
     if (copy) copyable(dd, String(value));
-    wrap.appendChild(dd);
-    parent.appendChild(wrap);
+    line.appendChild(dd);
+    parent.appendChild(line);
   }
 
   /** Ask the token map about one property, tolerating a page with no tokens. */
@@ -390,15 +397,32 @@
 
   function measurementSection(measurement, fmt, pair) {
     const sec = section('Measurement');
-    sec.appendChild(el('p', 'mkind', measurement.note));
-    for (const value of measurement.values) {
-      const wrap = el('div', 'row');
-      wrap.appendChild(el('dt', null, value.label));
-      const dd = el('dd', 'mval', fmt(value.px));
-      copyable(dd, fmt(value.px));
-      wrap.appendChild(dd);
-      sec.appendChild(wrap);
+
+    // The distance is the headline, so it gets one line to itself: what kind
+    // of gap on the left, the number on the right. Nested and diagonal cases
+    // carry more than one number and keep their own rows underneath.
+    const single = measurement.values.length === 1;
+    const lead = el('div', 'mlead');
+    lead.appendChild(el('span', 'mlead-kind', measurement.note));
+    if (single) {
+      const value = fmt(measurement.values[0].px);
+      const node = el('span', 'mlead-val', value);
+      copyable(node, value);
+      lead.appendChild(node);
     }
+    sec.appendChild(lead);
+
+    if (!single) {
+      for (const value of measurement.values) {
+        const wrap = el('div', 'row');
+        wrap.appendChild(el('dt', null, value.label));
+        const dd = el('dd', 'mval', fmt(value.px));
+        copyable(dd, fmt(value.px));
+        wrap.appendChild(dd);
+        sec.appendChild(wrap);
+      }
+    }
+
     if (pair?.a && pair?.b) sec.appendChild(pairSummary(pair));
     return sec;
   }
@@ -439,21 +463,26 @@
             ...(data.layout.isContainer ? [['Gap', fmt(data.layout.rowGap)]] : []),
           ];
 
+      // Stacked full-width, so the facts run inline rather than as one
+      // key-value row each: a card-wide row with two words in it is mostly
+      // empty space, and stacking cost us the vertical room to waste.
+      const list = el('div', 'pair-facts');
       for (const [label, value] of facts) {
-        const line = el('div', 'pair-row');
-        line.appendChild(el('span', 'pair-key', label));
+        const fact = el('span', 'pair-fact');
+        fact.appendChild(el('span', 'pair-key', label));
         const val = el('span', 'pair-val', value);
         copyable(val, value);
-        line.appendChild(val);
-        col.appendChild(line);
+        fact.appendChild(val);
+        list.appendChild(fact);
       }
 
       if (data.media) {
-        const line = el('div', 'pair-row');
-        line.appendChild(el('span', 'pair-key', 'Media'));
-        line.appendChild(el('span', 'pair-val', data.media.format || data.media.kind));
-        col.appendChild(line);
+        const fact = el('span', 'pair-fact');
+        fact.appendChild(el('span', 'pair-key', 'Media'));
+        fact.appendChild(el('span', 'pair-val', data.media.format || data.media.kind));
+        list.appendChild(fact);
       }
+      col.appendChild(list);
 
       wrap.appendChild(col);
     }
@@ -506,6 +535,7 @@
       if (media.controls) flags.push('controls');
       row(sec, 'Playback', `${media.playing ? 'playing' : 'paused'}${flags.length ? `, ${flags.join(', ')}` : ''}`, {
         copy: false,
+        wrap: true,
       });
       if (media.poster) row(sec, 'Poster', truncate(media.poster, 24));
     }
@@ -516,6 +546,7 @@
     if (media.kind === 'Image' || media.kind === 'Image (picture)') {
       row(sec, 'Alt text', media.hasAlt ? media.alt || 'empty (decorative)' : 'missing', {
         copy: false,
+        wrap: true,
       });
     }
 

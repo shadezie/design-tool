@@ -347,6 +347,8 @@
 
 .is-hex { color: var(--accent-text); }
 
+.row dd.is-wrap { white-space: normal; overflow: visible; }
+
 .swatch {
   display: inline-block;
   width: 9px;
@@ -528,10 +530,13 @@ kbd {
 
 /* ---------- the two measured elements ---------- */
 
+/* Stacked, not side by side: two narrow columns truncate an identity like
+   section#hero.container to nothing, and the eye reads A then B as a sequence
+   anyway. Full width also lets each one's facts run inline. */
 .pair {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
   margin-top: 9px;
   padding-top: 9px;
   border-top: 1px solid var(--line);
@@ -575,30 +580,51 @@ kbd {
   white-space: nowrap;
 }
 
-.pair-row {
+.pair-facts {
   display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
+.pair-fact {
+  display: inline-flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 1px 0;
+  gap: 5px;
 }
 
 .pair-key {
   color: var(--muted);
-  font: 400 9.5px/1.5 var(--mono);
+  font: 400 9.5px/1.6 var(--mono);
 }
 
 .pair-val {
   color: var(--text);
-  font: 500 10.5px/1.5 var(--mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font: 500 10.5px/1.6 var(--mono);
+  white-space: nowrap;
+}
+
+/* ---------- the distance, on one line ---------- */
+
+.mlead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mlead-kind {
+  color: var(--muted);
+  font: 400 11px/1.5 var(--sans);
+}
+
+.mlead-val {
+  color: var(--measure);
+  font: 600 15px/1.4 var(--mono);
   white-space: nowrap;
 }
 
 /* ---------- measurement readout inside the card ---------- */
 
-.mkind { margin-bottom: 6px; color: var(--muted); font-size: 11px; }
 .mval { color: var(--measure); font-weight: 600; }
 `;
 })();

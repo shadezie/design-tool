@@ -3,3 +3,4 @@ test/out/
 dist/
 .DS_Store
 dev/
+test/shots/
