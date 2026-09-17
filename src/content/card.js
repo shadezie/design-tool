@@ -505,6 +505,55 @@
     return `${identity.tag}${identity.id}${identity.classes}`;
   }
 
+  // Ratios a designer names out loud. Anything close enough to one of these
+  // reads better as "16:9" than as the honest "1.78:1".
+  const NAMED_RATIOS = [
+    [1, 1], [4, 3], [3, 4], [3, 2], [2, 3], [16, 9], [9, 16],
+    [16, 10], [5, 4], [21, 9], [2, 1], [1, 2], [7, 5], [5, 3],
+  ];
+
+  /** Greatest common divisor, for reducing a ratio nobody has a name for. */
+  function gcd(a, b) {
+    return b < 1 ? a : gcd(b, a % b);
+  }
+
+  /**
+   * "1920 x 1080" -> "16:9".
+   *
+   * Real boxes are rarely exact: a 1200x675 hero is 16:9, and so is one that
+   * came out 1199.5 wide after a flex division. A 0.5% tolerance covers
+   * subpixel layout without letting genuinely different ratios collapse
+   * together.
+   */
+  function ratioLabel(width, height) {
+    if (!(width > 0) || !(height > 0)) return null;
+    const value = width / height;
+
+    for (const [w, h] of NAMED_RATIOS) {
+      if (Math.abs(value - w / h) / (w / h) < 0.005) return `${w}:${h}`;
+    }
+
+    // Integer pixel sizes usually reduce to something readable.
+    const w = Math.round(width);
+    const h = Math.round(height);
+    const divisor = gcd(Math.max(w, h), Math.min(w, h));
+    if (divisor > 1) {
+      const rw = w / divisor;
+      const rh = h / divisor;
+      if (rw <= 40 && rh <= 40) return `${rw}:${rh}`;
+    }
+    return `${round(value)}:1`;
+  }
+
+  /** What a rendered box does to an asset of a different shape. */
+  function fitNote(fit) {
+    if (fit === 'cover') return 'cropped to fit';
+    if (fit === 'contain') return 'letterboxed';
+    if (fit === 'scale-down') return 'letterboxed';
+    if (fit === 'none') return 'clipped';
+    return 'stretched';
+  }
+
   /**
    * Media, stated the way you would ask about it.
    *
@@ -531,6 +580,22 @@
     }
     if (media.rendered && media.rendered.width > 0) {
       row(sec, 'Rendered', `${fmt(media.rendered.width)} x ${fmt(media.rendered.height)}`);
+
+      // The ratio of the box on screen, which is the one being checked against
+      // the design.
+      const shown = ratioLabel(media.rendered.width, media.rendered.height);
+      if (shown) row(sec, 'Ratio', shown);
+
+      // When the asset's own ratio differs, the box is doing something to it,
+      // and which something depends on object-fit. This is the check: a 4:3
+      // photo in a 16:9 slot is either a deliberate crop or a bug, and the
+      // page never says which.
+      const source = media.natural && media.natural.width > 0
+        ? ratioLabel(media.natural.width, media.natural.height)
+        : null;
+      if (source && source !== shown) {
+        row(sec, 'Asset ratio', `${source}, ${fitNote(media.fitRaw)}`, { wrap: true });
+      }
     }
     if (media.density) {
       // Under 1x is upscaling, which is the one that actually looks broken.

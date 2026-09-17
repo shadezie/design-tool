@@ -198,6 +198,7 @@
       alt: img.alt ? img.alt : null,
       hasAlt: img.hasAttribute('alt'),
       fit: cs.objectFit !== 'fill' ? cs.objectFit : null,
+      fitRaw: cs.objectFit,
       position: cs.objectPosition,
     };
   }
@@ -225,6 +226,7 @@
       controls: video.controls,
       poster: video.poster ? sourceName(video.poster) : null,
       fit: cs.objectFit !== 'fill' ? cs.objectFit : null,
+      fitRaw: cs.objectFit,
     };
   }
 

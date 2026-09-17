@@ -340,6 +340,17 @@ check(
 check('MP4 is reported as MP4', playerCard.includes('MP4'));
 await page.screenshot({ path: `${OUT}/media-video.png` });
 
+// A 4x3 asset in a 90x90 box: the rendered ratio is 1:1, the asset's is 4:3,
+// and object-fit decides which of those the viewer actually sees.
+await glide(await reach('#square', 45, 45));
+const squareCard = await cardText();
+check('the rendered ratio is reported', squareCard.includes('1:1'), squareCard.slice(0, 140));
+check(
+  "a differing asset ratio is called out with what the box does to it",
+  squareCard.includes('4:3') && squareCard.includes('cropped'),
+  squareCard.slice(0, 160)
+);
+
 // ---- design tokens -------------------------------------------------------
 // One element sets its colour through var(), the other hardcodes the same hex.
 // The first is found by reading the rule, the second only by matching values,
