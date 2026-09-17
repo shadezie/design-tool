@@ -274,7 +274,10 @@
   border-bottom: 1px solid var(--line);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.hero.is-1up { grid-template-columns: minmax(0, 1fr); }
 .hero.is-2up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Four edge distances: 2x2 rather than four slivers. */
+.hero.is-4up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .tile {
   padding: 8px 10px;
@@ -312,6 +315,17 @@
   margin-left: 4px;
   color: var(--muted);
   font: 400 10px/1.2 var(--mono);
+}
+
+/* A gap that lands exactly on a spacing token is the good news a QA pass is
+   looking for, so it gets the accent rather than the muted grey. */
+.tile-sub.is-token {
+  display: block;
+  margin-left: 0;
+  margin-top: 2px;
+  color: var(--accent-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sec { padding: 10px 12px; border-bottom: 1px solid var(--line); }
@@ -605,22 +619,10 @@ kbd {
 
 /* ---------- the distance, on one line ---------- */
 
-.mlead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .mlead-kind {
+  margin: 0 0 7px;
   color: var(--muted);
   font: 400 11px/1.5 var(--sans);
-}
-
-.mlead-val {
-  color: var(--measure);
-  font: 600 15px/1.4 var(--mono);
-  white-space: nowrap;
 }
 
 /* ---------- measurement readout inside the card ---------- */

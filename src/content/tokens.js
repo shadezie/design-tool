@@ -272,6 +272,25 @@
     },
 
     /**
+     * Match a bare pixel length against the token map.
+     *
+     * A measured gap belongs to no element and no property, so there is no
+     * rule to read: value matching is the only path, and a spacing scale is
+     * exactly where it works well.
+     *
+     * @param {number} px
+     */
+    forLength(px) {
+      ensure();
+      if (!names || !names.size || !Number.isFinite(px)) return null;
+      const key = keyFor(`${px}px`);
+      if (!key || TOO_COMMON.has(key)) return null;
+      const list = byValue.get(key);
+      if (!list || !list.length) return null;
+      return { name: list[0].name, exact: false, ambiguous: list.length > 1 };
+    },
+
+    /**
      * @param {Element} el
      * @param {string} prop CSS property name, e.g. "color"
      * @param {string} computed the computed value, for the fallback match

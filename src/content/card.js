@@ -209,9 +209,26 @@
    * glance. Which three depends on what the element is: for text it is the type
    * spec, for a container it is the box.
    */
-  function heroTiles(data, fmt) {
+  function heroTiles(data, fmt, measurement) {
     const type = data.typography;
     const tiles = [];
+
+    // While measuring, the distance is the thing being checked, so it takes
+    // the hero row. The element's own spec is already stated per element in
+    // the A/B block below, and showing it here as well said it twice.
+    if (measurement) {
+      const single = measurement.values.length === 1;
+      for (const value of measurement.values) {
+        const token = tokenForLength(value.px);
+        tiles.push([
+          single ? measurement.note : value.label,
+          fmt(value.px),
+          token ? token.name : null,
+          token ? 'is-token' : null,
+        ]);
+      }
+      return buildHero(tiles);
+    }
 
     if (type.hasText) {
       tiles.push(['Size', fmt(type.size)]);
@@ -230,8 +247,21 @@
       }
     }
 
+    return buildHero(tiles);
+  }
+
+  /** Look up a bare length, tolerating a page with no tokens. */
+  function tokenForLength(px) {
+    try {
+      return DT.tokens?.forLength(px) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function buildHero(tiles) {
     const wrap = el('div', `hero is-${tiles.length}up`);
-    for (const [label, value, sub] of tiles) {
+    for (const [label, value, sub, subClass] of tiles) {
       // The unit moves into the label so the number itself gets the width. It
       // is the same unit for every tile anyway, and a truncated "123.…" is
       // worse than useless during QA.
@@ -243,7 +273,7 @@
       tile.appendChild(caption);
 
       const line = el('span', 'tile-value', number);
-      if (sub) line.appendChild(el('span', 'tile-sub', sub));
+      if (sub) line.appendChild(el('span', `tile-sub${subClass ? ` ${subClass}` : ''}`, sub));
       tile.appendChild(line);
 
       copyable(tile, value);
@@ -283,7 +313,7 @@
 
       card.classList.toggle('is-pinned', !!pin);
 
-      card.appendChild(heroTiles(data, fmt));
+      card.appendChild(heroTiles(data, fmt, opts.measurement));
 
       if (data.media) card.appendChild(mediaSection(data.media, fmt));
 
@@ -395,32 +425,14 @@
     },
   };
 
-  function measurementSection(measurement, fmt, pair) {
+  function measurementSection(measurement, _fmt, pair) {
     const sec = section('Measurement');
 
-    // The distance is the headline, so it gets one line to itself: what kind
-    // of gap on the left, the number on the right. Nested and diagonal cases
-    // carry more than one number and keep their own rows underneath.
-    const single = measurement.values.length === 1;
-    const lead = el('div', 'mlead');
-    lead.appendChild(el('span', 'mlead-kind', measurement.note));
-    if (single) {
-      const value = fmt(measurement.values[0].px);
-      const node = el('span', 'mlead-val', value);
-      copyable(node, value);
-      lead.appendChild(node);
-    }
-    sec.appendChild(lead);
-
-    if (!single) {
-      for (const value of measurement.values) {
-        const wrap = el('div', 'row');
-        wrap.appendChild(el('dt', null, value.label));
-        const dd = el('dd', 'mval', fmt(value.px));
-        copyable(dd, fmt(value.px));
-        wrap.appendChild(dd);
-        sec.appendChild(wrap);
-      }
+    // The numbers are in the hero row above. What is left to say is which two
+    // elements they span, and for the multi-value cases, what kind of
+    // measurement it is, since the tile labels alone do not carry that.
+    if (measurement.values.length > 1) {
+      sec.appendChild(el('p', 'mlead-kind', measurement.note));
     }
 
     if (pair?.a && pair?.b) sec.appendChild(pairSummary(pair));
