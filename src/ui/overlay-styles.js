@@ -73,9 +73,12 @@
      re-render on every hover, which is far too often to animate. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --press: 140ms;
+
+  --status-bg: rgba(232, 237, 255, 0.04);
 }
 
 .layer[data-theme="light"] {
+  --status-bg: rgba(15, 23, 42, 0.03);
   --bg: #ffffff;
   --bg-soft: #f4f6fa;
   --line: rgba(15, 23, 42, 0.10);
@@ -426,21 +429,47 @@
 
 .row dd.is-wrap { white-space: normal; overflow: visible; }
 
+/* Colour is the one value read as a thing rather than a number, so the chip
+   is big enough to actually judge. At 9px it was a punctuation mark. */
 .swatch {
   display: inline-block;
-  width: 9px;
-  height: 9px;
-  margin-right: 5px;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
   border: 1px solid var(--ring-line);
-  border-radius: 2px;
-  vertical-align: baseline;
+  border-radius: 3px;
+  vertical-align: -2px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
-/* The live one: what a click will do right now. */
-.state-line {
-  color: var(--text);
-  font: 400 11px/1.5 var(--sans);
+/* The tool talking to you, rather than data about the page, so it sits on its
+   own tinted strip: the distinction has to be readable before the words are. */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  background: var(--status-bg);
+  border-bottom: 1px solid var(--line);
 }
+
+.status-text {
+  color: var(--muted);
+  font: 400 10.5px/1.5 var(--sans);
+}
+
+/* The dot carries the state in the same colours as the on-page highlights, so
+   "which element am I on" is answerable without reading. */
+.status-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.status-dot.is-armed { background: var(--muted); }
+.status-dot.is-lockedA { background: var(--hl-a); }
+.status-dot.is-lockedAB { background: var(--hl-b); }
 
 .sc-fold { margin-top: 9px; }
 

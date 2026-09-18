@@ -313,6 +313,11 @@
 
       card.classList.toggle('is-pinned', !!pin);
 
+      // What a click will do next, directly under the header. At the bottom of
+      // the card it was the last thing read, and on a long card it was below
+      // the fold: guidance nobody sees is not guidance.
+      card.appendChild(statusBar(opts.state));
+
       card.appendChild(heroTiles(data, fmt, opts.measurement));
 
       if (data.media) card.appendChild(mediaSection(data.media, fmt));
@@ -642,6 +647,7 @@
     [[DEEP_KEY, 'hover'], 'Select through overlays'],
     [['Alt', 'scroll'], 'Walk the DOM tree'],
     [['U'], 'Cycle px / rem / em'],
+    [['Click'], 'Any value, to copy it'],
     [['Esc'], 'Clear, then exit'],
   ];
 
@@ -659,10 +665,15 @@
    * state line stays out: that one is live feedback about what a click will do
    * right now, not reference material.
    */
+  function statusBar(state) {
+    const bar = el('div', 'status');
+    bar.appendChild(el('span', `status-dot is-${state}`));
+    bar.appendChild(el('span', 'status-text', STATE_LINE[state] || STATE_LINE.armed));
+    return bar;
+  }
+
   function shortcuts(state) {
     const sec = el('section', 'sec');
-    sec.appendChild(el('p', 'state-line', STATE_LINE[state] || STATE_LINE.armed));
-
     const fold = el('details', 'sc-fold');
     fold.open = shortcutsOpen;
     fold.addEventListener('toggle', () => {
