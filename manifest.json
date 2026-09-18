@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Design Tool",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Figma-style inspection for any website. Hover for type styles, click two elements to measure the gap, see the spacing box.",
   "permissions": [
     "activeTab",

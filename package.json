@@ -1,6 +1,6 @@
 {
   "name": "design-tool",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Chrome extension for design QA. The extension itself has no build step and no runtime dependencies; this file exists only for the end-to-end tests.",
   "type": "module",

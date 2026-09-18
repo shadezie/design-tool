@@ -13,10 +13,10 @@ submitted, so the next release does not have to reinvent it.
 Design Tool
 ```
 
-**Short description** (132 char limit, this is 101)
+**Short description** (132 char limit, this is 118)
 
 ```
-Design QA for any website. Hover for type styles, measure gaps between elements, read spacing as a box.
+Design QA for any website. Type styles, spacing, design tokens and media, read the way a designer thinks about them.
 ```
 
 **Category**: Developer Tools
@@ -41,11 +41,30 @@ grid gap stated right next to the padding.
 WHAT YOU GET
 
 • Type styles at a glance, in designer vocabulary rather than CSS
-• Measure between any two elements, drawn on the page
+• Measure between any two elements, drawn on the page, with the spec of both
+• Design token names instead of raw values, where the site defines them
+• Media: format actually served, aspect ratio, and whether the asset fits
 • A spacing box: margin, border, padding, content, plus gap
 • px, rem and em, converted everywhere at once
 • Click any value to copy it
 • Light and dark, and a panel you can drag anywhere and resize
+
+DESIGN TOKENS
+
+If the site is built on CSS custom properties, a colour reads as
+--color-brand-600 rather than #2A51FD, with the hex still shown underneath.
+Copy either one: the token name for code, the value for Figma. Where a token
+can only be inferred by matching values, it says so rather than pretending to
+certainty.
+
+MEDIA
+
+Hover an image or video for the format the browser actually chose out of
+srcset, not the src fallback, so a picture element serving WebP reports WebP.
+Aspect ratio is stated for the rendered box, and again for the asset itself
+when the two differ, along with what the box is doing about it: cropped,
+letterboxed or stretched. Asset scale catches a blurry upscale and a 3x file in
+a 100px slot, neither of which the page tells you about.
 
 BUILT FOR REAL PAGES
 
@@ -153,5 +172,12 @@ npm test          # all three suites green
 npm run package   # dist/design-tool-<version>.zip
 ```
 
-Bump `version` in `manifest.json` first. The Web Store rejects an upload whose
-version is not higher than the published one.
+Bump `version` in `manifest.json` first (and `package.json`, to match). The Web
+Store rejects an upload whose version is not higher than the published one.
+
+## Released
+
+| Version | What shipped |
+| --- | --- |
+| 1.0.0 | First release: type styles, measurement, spacing box, units, copy |
+| 1.1.0 | Design token names, media format and aspect ratio, both sides of a measurement, folded shortcuts, Obsidian and Paper palettes |
