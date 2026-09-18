@@ -79,5 +79,21 @@ await shot('5-media-image');
 await glide(...(await at('#bgvideo', 80, 50)));
 await shot('6-media-video');
 
+// Light theme: click the sun/moon in the header, then re-shoot the key states.
+// No Escape first: the state is armed here, and Escape while armed exits.
+const THEME_X = 1280 - 167;
+await page.mouse.click(THEME_X, 34);
+await page.waitForTimeout(400);
+
+await glide(...(await at('#hero-title', 120, 24)));
+await shot('7-light-tokens');
+
+const [lx, ly] = await at('#card-a', 80, 6);
+await glide(lx, ly);
+await page.mouse.click(lx, ly);
+await page.waitForTimeout(250);
+await glide(...(await at('#card-b', 80, 6)));
+await shot('8-light-measure');
+
 await ctx.close();
 console.log('done');

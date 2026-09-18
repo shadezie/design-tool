@@ -36,24 +36,43 @@ Two token groups, and they are not interchangeable. The **page overlay**
 (highlights, dimension lines, badges) is never themed: it has to read on top of
 whatever the site being reviewed looks like. The **card** is themed.
 
-| Token | Dark | Light |
+| Token | Dark (Obsidian) | Light (Paper) |
 | --- | --- | --- |
-| `--bg` | `#0F172A` (Ink) | `#FFFFFF` |
-| `--bg-soft` | `#1A2440` | `#F4F6FA` (Neutral) |
-| `--line` | `rgba(232,237,255,0.12)` | `rgba(15,23,42,0.10)` |
-| `--text` | `#F4F6FA` (Neutral) | `#0F172A` (Ink) |
-| `--muted` | `#8895B3` | `#5D6B85` |
-| `--accent` | `#2A51FD` | `#2A51FD` |
-| `--accent-text` | `#6E8CFF` | `#2A51FD` |
-| `--flash` | `rgba(232,237,255,0.09)` | `#E8EDFF` (Light) |
+| `--bg` | `#0B0B0C` | `#FCFCFB` |
+| `--bg-soft` | `#151517` | `#F1F1EF` |
+| `--line` | `rgba(255,255,255,0.13)` | `rgba(24,24,20,0.12)` |
+| `--text` | `#FFFFFF` | `#191917` |
+| `--muted` | `#A2A6AD` | `#6C6C66` |
+| `--accent` | `#3B63FF` | `#2A51FD` (brand) |
+| `--accent-text` | `#92AAFF` | `#2442C9` |
+| `--flash` | `rgba(255,255,255,0.09)` | `rgba(24,24,20,0.055)` |
+| `--dot-b` | `#FFB020` | `#C77700` |
 
-`--accent` fills things that carry white text, so it stays brand-exact. Brand
-blue as *text* on the Ink ground is too dark to read, so `--accent-text` lifts
-it on dark and is brand-exact on light. Hex readouts use it, as the guideline's
-inspector mock does.
+The grounds are neutral on purpose, and the two themes lean opposite ways:
+cool-neutral in dark, warm-neutral in light.
 
-`--bg-soft` on dark is derived rather than brand-specified: the guideline gives
-one dark ground, and the chips in its own product mock sit a step above it.
+**Dark was brand Ink**, a navy. That put the ground, the raised surfaces and the
+accent all in the blue family, so the accent had nothing to be brighter than,
+and a coloured ground competed with whatever site sat behind it. Near-black is
+inert: the card reads as chrome, and the blue is the only chromatic thing on it.
+
+**Light was cool grey on white**, which is the one thing that cannot work here.
+The average website is already white and cool grey, so the card went invisible
+on exactly the pages it is used on. Warm neutrals separate it from the page
+without raising its contrast.
+
+`--accent` fills things that carry white text. It stays brand-exact on light.
+On dark it does not: `#2A51FD` does not hold against `#0B0B0C`, so it lifts to
+`#3B63FF` there. That is a deliberate trade, legibility over brand exactness, on
+the one theme where the brand value fails.
+
+`--accent-text` is the same value used as text rather than as a fill, lifted far
+enough to read on each ground. Hex readouts and token names use it.
+
+`--dot-b` exists because the B highlight is amber on the page and always will be,
+but a 6px amber dot on a near-white card is not visible. Only the status dot
+uses it; filled chips keep the page colour, since they carry dark text and work
+on either ground.
 
 ### Functional colours, outside the brand palette
 

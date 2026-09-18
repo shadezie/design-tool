@@ -51,22 +51,38 @@
   --hl-b: #ffb020;
   --measure: #ff3b6b;
 
-  /* Card surface, dark. Ground is brand Ink. */
-  --bg: #0f172a;
-  --bg-soft: #1a2440;
-  --line: rgba(232, 237, 255, 0.12);
-  --text: #f4f6fa;
-  --muted: #8895b3;
-  --accent: #2a51fd;
-  --accent-text: #6e8cff;
-  --zero: #4c5a78;
-  --flash: rgba(232, 237, 255, 0.09);
-  --ring-line: rgba(232, 237, 255, 0.16);
-  --tint-margin: rgba(255, 176, 32, 0.08);
-  --tint-border: rgba(136, 149, 179, 0.10);
-  --tint-padding: rgba(45, 212, 160, 0.08);
-  --tint-content: rgba(42, 81, 253, 0.22);
-  --shadow: 0 12px 32px rgba(4, 9, 22, 0.55);
+  /* Card surface, dark: "Obsidian".
+     The ground used to be brand Ink, a navy, which put the ground, the raised
+     surfaces and the accent all in the blue family: the accent had nothing to
+     be brighter than, and a coloured ground competed with whatever site sat
+     behind it. Near-black is inert, so the card reads as chrome and the blue
+     is the only chromatic thing on it.
+
+     The trade, taken deliberately: --accent is no longer brand-exact on dark.
+     #2A51FD does not hold against #0B0B0C, so it lifts to #3B63FF here. Light
+     keeps the brand value. */
+  --bg: #0b0b0c;
+  --bg-soft: #151517;
+  --line: rgba(255, 255, 255, 0.13);
+  --text: #ffffff;
+  --muted: #a2a6ad;
+  --accent: #3b63ff;
+  --accent-text: #92aaff;
+  --zero: #5a5e66;
+  --flash: rgba(255, 255, 255, 0.09);
+  --ring-line: rgba(255, 255, 255, 0.18);
+  /* The box-model tints carry more alpha than they did on navy: the same
+     values that read on #0F172A disappear on near-black. */
+  --tint-margin: rgba(255, 176, 32, 0.11);
+  --tint-border: rgba(162, 166, 173, 0.12);
+  --tint-padding: rgba(45, 212, 160, 0.11);
+  --tint-content: rgba(59, 99, 255, 0.26);
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+
+  /* The B highlight, for the card's own use. On the page it is always amber,
+     but a 6px amber dot on a near-white card is not visible, so light darkens
+     it. Filled chips keep the page colour either way: they carry dark text. */
+  --dot-b: #ffb020;
 
   /* The built-in easings are too soft to read as intentional at these
      durations. Only press feedback and hover use them: the card's contents
@@ -74,26 +90,36 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --press: 140ms;
 
-  --status-bg: rgba(232, 237, 255, 0.04);
+  --status-bg: rgba(255, 255, 255, 0.045);
 }
 
+/* Card surface, light: "Paper".
+   Cool grey on white is the one thing that cannot work here, because the
+   average website is already white and cool grey: the card went invisible on
+   exactly the pages it is used on. Warm neutrals separate it from the page
+   without raising its contrast, and they pair with the cool-leaning dark
+   theme rather than repeating it. */
 .layer[data-theme="light"] {
-  --status-bg: rgba(15, 23, 42, 0.03);
-  --bg: #ffffff;
-  --bg-soft: #f4f6fa;
-  --line: rgba(15, 23, 42, 0.10);
-  --text: #0f172a;
-  --muted: #5d6b85;
+  --status-bg: rgba(24, 24, 20, 0.03);
+  --bg: #fcfcfb;
+  --bg-soft: #f1f1ef;
+  --line: rgba(24, 24, 20, 0.12);
+  --text: #191917;
+  --muted: #6c6c66;
   --accent: #2a51fd;
-  --accent-text: #2a51fd;
-  --zero: #aab3c6;
-  --flash: #e8edff;
-  --ring-line: rgba(15, 23, 42, 0.14);
-  --tint-margin: rgba(255, 159, 10, 0.16);
-  --tint-border: rgba(93, 107, 133, 0.12);
-  --tint-padding: rgba(16, 185, 129, 0.13);
+  --accent-text: #2442c9;
+  --zero: #b0b0a8;
+  /* Warm, to match the ground. Brand Light (#E8EDFF) is a cool blue and read
+     as a stray tint on paper; the brand still shows on the copied state,
+     which fills with --accent. */
+  --flash: rgba(24, 24, 20, 0.055);
+  --ring-line: rgba(24, 24, 20, 0.16);
+  --tint-margin: rgba(199, 119, 0, 0.14);
+  --tint-border: rgba(108, 108, 102, 0.13);
+  --tint-padding: rgba(16, 140, 98, 0.13);
   --tint-content: rgba(42, 81, 253, 0.12);
-  --shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  --shadow: 0 12px 32px rgba(24, 24, 20, 0.16);
+  --dot-b: #c77700;
 }
 
 /* ---------- element highlights ---------- */
@@ -469,7 +495,7 @@
 }
 .status-dot.is-armed { background: var(--muted); }
 .status-dot.is-lockedA { background: var(--hl-a); }
-.status-dot.is-lockedAB { background: var(--hl-b); }
+.status-dot.is-lockedAB { background: var(--dot-b); }
 
 .sc-fold { margin-top: 9px; }
 
