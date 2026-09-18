@@ -7,7 +7,7 @@ spacing box instead of an alphabetical list of CSS.
 
 Built for designers doing design QA, not for reading CSS.
 
-![Measuring the gap between two cards](docs/readme/measurement.png)
+![Measuring the gap between two headings, with the spec of both](docs/readme/gap-distance.png)
 
 ## What it does
 
@@ -104,6 +104,8 @@ instead of on what you are looking at.
 
 ## Design tokens
 
+![A colour reported as --ink, with the hex underneath](docs/readme/font-size.png)
+
 If the page is built on CSS custom properties, the card names the token rather
 than the value it resolved to: `--color-brand` instead of `#2A51FD`, with the
 hex still shown underneath. Click the name to copy `var(--color-brand)`, click
@@ -123,6 +125,8 @@ shown as before.
 
 ## Media
 
+![An image reported with its format, ratio and asset scale](docs/readme/image-video-tag.png)
+
 Hover an image or video and the card says which it is, what format it is being
 served in, and how the asset compares to the box it is drawn in.
 
@@ -138,7 +142,7 @@ served in, and how the asset compares to the box it is drawn in.
 
 ## What the measurements mean
 
-![The card reading type styles](docs/readme/typography.png)
+![An element measured inside its container, one number per edge](docs/readme/container-padding.png)
 
 - **Two elements side by side or stacked**: one gap number, drawn between the
   facing edges.
@@ -150,9 +154,9 @@ served in, and how the asset compares to the box it is drawn in.
 - **Elements offset on both axes**: the horizontal and vertical components
   separately, not a diagonal nobody designs against.
 
-Under the number, both measured elements are described side by side in the same
-A/B colours as the on-page highlights: the type spec for text, width and height
-for a box. "24px between what?" is the next question every time.
+Under the number, both measured elements are described in the same A/B colours
+as their on-page highlights: the type spec for text, width and height for a box.
+"24px between what?" is the next question every time.
 
 ## Known limits
 

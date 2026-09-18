@@ -154,14 +154,20 @@ Tick nothing. The extension collects no user data. Then certify all three:
 | Asset | Size | File |
 | --- | --- | --- |
 | Icon | 128x128 | `src/icons/icon128.png` |
-| Screenshot 1 | 1280x800 | `docs/store/measurement-1280x800.png` |
-| Screenshot 2 | 1280x800 | `docs/store/padding-1280x800.png` |
-| Screenshot 3 | 1280x800 | `docs/store/typography-1280x800.png` |
+| Screenshot 1 | 1280x800 | `docs/store/gap-distance-1280x800.png` |
+| Screenshot 2 | 1280x800 | `docs/store/font-size-1280x800.png` |
+| Screenshot 3 | 1280x800 | `docs/store/container-padding-1280x800.png` |
+| Screenshot 4 | 1280x800 | `docs/store/image-video-tag-1280x800.png` |
 | Small promo tile | 440x280 | `docs/store/promo-440x280.png` |
 | Marquee promo tile | 1400x560 | `docs/store/marquee-1400x560.png` |
 
 The small tile and marquee are optional; screenshots are the ones that matter.
-Upload at least one, ideally all three.
+Upload all four. Order matters: the first one is what shows in search results,
+and the measurement is the clearest single picture of what the tool does.
+
+All four are regenerated from `docs/raw/` by `npm run store-images`, so replacing
+a screenshot means dropping a new file in there and rerunning it, never editing
+anything in `docs/store/` by hand.
 
 ---
 
