@@ -39,7 +39,7 @@
 
     /** Re-read on activation and on resize: root size is often responsive. */
     refreshRoot() {
-      const size = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const size = parseFloat(DT.target.cs(DT.target.doc.documentElement).fontSize);
       if (Number.isFinite(size) && size > 0) rootFontSize = size;
       return rootFontSize;
     },

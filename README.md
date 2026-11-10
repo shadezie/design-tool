@@ -11,6 +11,8 @@ Built for designers doing design QA, not for reading CSS.
 
 ## What it does
 
+- **A stage with device sizes.** The page is framed beside the panel at mobile,
+  tablet, desktop or large desktop size, or any width and height you type.
 - **Type styles at a glance.** Size, weight and line height as large readouts,
   plus family, letter spacing, transform and colour underneath.
 - **Measure between two elements.** Dimension lines drawn on the page, with
@@ -39,7 +41,8 @@ grants access only to that one tab, only for that visit. Install shows no "read
 your data on all websites" warning.
 
 It makes no network requests. It stores your unit, theme, which edge the panel
-docks to and which sections you folded, locally, and nothing else.
+docks to, which sections you folded and the stage size you last used, locally,
+and nothing else.
 
 ## Install
 
@@ -79,6 +82,34 @@ Measurements wait for the key on purpose. Showing a dimension line on every
 hover after locking A covered the page in numbers while you were only moving the
 mouse. Without the key, hovering shows a dashed outline of what a click would
 select and nothing else.
+
+### The stage
+
+Turning the tool on moves the page onto a stage: the same URL, loaded in a
+frame beside the panel. It opens at **Fit**, the largest size the stage can show
+at 100%.
+
+| Control | What it does |
+| --- | --- |
+| Inspect / Interact | Inspect is hover and click to read styles. Interact hands the page its clicks back, so you can open a menu or follow a link, then switch back and measure it |
+| Device icons | Mobile 390, Tablet 768, Desktop 1440, Large desktop 1920, or Fit |
+| Size list | The other sizes for that device, including 2560 × 1440 under Large |
+| Width × height | Type any size from 240 to 3840 |
+| Rotate | Swaps width and height |
+| Percentage, right | How far the page is scaled down to fit. Measurements are always the page's real pixels |
+
+A framed page has a real viewport, so media queries, `vh` units and container
+sizes all respond to the size you pick. It is a viewport, not a device: the
+user agent, touch input and pixel density stay your desktop's.
+
+The page loads a second time to get onto the stage, so anything held only in
+memory starts over: an open modal, a half-filled form. Your login carries
+across. Use Interact to get back to the state you want to inspect.
+
+**Some sites refuse to be framed.** GitHub and most banking and admin tools send
+headers that forbid it. There the tool says so and inspects the page in place,
+with the panel docked over it and device sizes unavailable. The same goes for
+local `file://` pages.
 
 ### The panel
 
@@ -174,13 +205,20 @@ as their on-page highlights: the type spec for text, width and height for a box.
 
 ## Known limits
 
-- **The panel sits on the page.** Whatever is under it cannot be hovered until
-  you flip it to the other edge. Device frames, where the page gets its own
-  stage beside the panel, are the next release.
+- **The stage is a viewport, not a device.** It sets width and height. It does
+  not change the user agent, touch input, hover capability or pixel density,
+  so a site that serves different HTML to phones still serves the desktop one.
+- **No network throttling.** Chrome only offers that to extensions through the
+  `debugger` permission, which would put a warning on install and a banner on
+  every use. DevTools throttling works alongside this tool.
+- **The page loads twice on the stage.** The original stays underneath, paused
+  and covered, so analytics will count a second page view.
+- **Where a page cannot be framed, the panel sits on it.** Whatever is under
+  the panel cannot be hovered until you flip it to the other edge.
 - **Screenshots in this README** predate the side panel and show the old
   floating card.
-- **Iframes.** The tool runs inside each frame independently. Measuring an
-  element in the page against one inside an iframe is not supported.
+- **Iframes inside the page** are inspected as one element. The tool does not
+  reach into them.
 - **Highlight badges** show rendered size in px whatever the unit toggle says.
   The panel is the source of truth for converted values.
 - **Strict CSP sites** may refuse the bundled fonts, and the panel falls back to
@@ -197,7 +235,7 @@ npm to run the tests.
 
 ```bash
 npm install         # Playwright plus the Chromium it drives, for the tests only
-npm test            # manifest, geometry and contrast checks, then the browser suite
+npm test            # manifest, geometry and contrast checks, then both browser suites
 npm run test:unit   # geometry only, runs in a second, no browser
 npm run package     # builds dist/design-tool-<version>.zip for the Web Store
 npm run dev         # builds ./dev/, a side-by-side copy for local testing
@@ -256,7 +294,9 @@ src/content/
   units.js                 px / rem / em conversion
   tokens.js                design token names for computed values
   measure.js               gap geometry, pure functions
+  target.js                which window is being inspected: the top one, or the stage's frame
   overlay.js               closed shadow root, highlights, dimension lines
+  stage.js                 the framed page, device sizes, the toolbar
   card.js                  the panel's contents
   spacing-box.js           the margin/border/padding diagram
   prefs.js                 persisted unit, theme, dock edge, folds
@@ -264,7 +304,8 @@ src/ui/overlay-styles.js   all injected CSS, as a string
 src/icons/icon.svg         icon source, exported from Figma
 src/fonts/                 the two brand typefaces, with their OFL licences
 test/fixture.html          a page with known-correct values to check against
-test/verify.mjs            end-to-end checks in a real Chromium
+test/verify.mjs            end-to-end checks in a real Chromium, page inspected in place
+test/stage.test.mjs        end-to-end checks of the stage, page served over http
 test/measure.test.mjs      geometry unit tests, no browser
 test/contrast.test.mjs     holds the palette to its contrast floors, no browser
 test/manifest.test.mjs     keeps the shipped manifest minimal

@@ -42,42 +42,44 @@ tells you whether it still holds.
 
 ### Surfaces and text
 
-Three grounds and three text tiers. v1 had two of each, so a raised tile and a
-sunken footer were the same colour, and "dimmed on purpose" was a one-off grey.
+Two looks on one structure: **Quiet** in light, **Ink** in dark. Neither uses
+containers. Structure comes from hairlines and type weight, and the numbers
+carry the emphasis that boxes used to.
 
-| Token | Dark (Obsidian) | Light (Paper) | Use |
+| Token | Dark (Ink) | Light (Quiet) | Use |
 | --- | --- | --- | --- |
-| `--bg` | `#0D0E10` | `#F8F8F5` | The panel |
-| `--bg-raised` | `#181A1E` | `#FFFFFF` | Tiles, chips, the unit control, buttons |
-| `--bg-sunken` | `#070809` | `#EEEEEA` | The status footer |
-| `--line` | white 10% | ink 11% | Hairlines between sections |
-| `--line-strong` | white 20% | ink 22% | Control borders, box-model rings |
-| `--text` | `#F4F5F6` | `#1A1A17` | Values. 7:1 or better on every ground |
-| `--text-2` | `#A6ACB5` | `#5C5C55` | Labels. 4.5:1 or better on every ground |
-| `--text-3` | `#747A84` | `#85857D` | Zero values and separators only. 3:1 |
-| `--hover` | white 8% | ink 6% | Hover ground for anything clickable |
+| `--bg` | `#151618` | `#FFFFFF` | The panel and the stage toolbar |
+| `--bg-raised` | `#222428` | `#F3F3F4` | Wells: segmented controls, fields, buttons, kbd |
+| `--bg-sunken` | `#0F1012` | `#F7F7F8` | Reserved for emphasis |
+| `--seg` | `#34373D` | `#FFFFFF` + hairline shadow | The active chip in a segmented control |
+| `--canvas` | `#0A0B0C` | `#F1F1F2` | The stage behind the framed page, with `--dots` |
+| `--line` | white 7.5% | `#EBEBED` | Hairlines between sections |
+| `--line-strong` | white 16% | `#D9D9DD` | Swatch edges |
+| `--text` | `#EDEEF0` | `#111113` | Values and section titles. 7:1 or better |
+| `--text-2` | `#9A9FA7` | `#68686D` | Labels. 4.5:1 or better on every ground |
+| `--text-3` | `#6D727A` | `#86868C` | Zero values, units, separators. 3:1 |
+| `--hover` | white 6% | ink 5% | Hover ground for anything clickable |
 
-Text is no longer pure white on dark. `#FFFFFF` on near-black halates at 12px,
-and stepping it back is the difference between a value and a glare.
+Ink is graphite rather than black, so it reads as a surface and not a hole in
+the page. Quiet is plain white and separates from the page by a hairline.
 
-The grounds are neutral on purpose, and the two themes lean opposite ways:
-cool-neutral in dark, warm-neutral in light. Dark was once brand Ink, a navy,
-which put the ground and the accent in the same family. Light was once cool
-grey on white, which is what the average website already is, so the tool
-disappeared on exactly the pages it is used on. On Paper the raised surfaces
-are pure white, which reads as lifted without needing a shadow.
+An earlier pass used bordered tiles, uppercase mono labels and a tinted
+first-run block. Each was defensible alone and together they were noise: on a
+panel that is read all day, every border is something to look past.
+
+The tool's theme stops at the frame's edge. The page inside is always its own
+colours, on white, as a browser would paint it.
 
 ### Accent
 
 | Token | Dark | Light | Use |
 | --- | --- | --- | --- |
-| `--accent` | `#3B63FF` | `#2A51FD` (brand) | Fills that carry `--on-accent` text |
-| `--accent-text` | `#9DB2FF` | `#2442C9` | The same hue as text: tags, hex values, token names |
-| `--accent-soft` | accent 20% | accent 10% | The first-run steps |
+| `--accent` | `#3B63FF` | `#2A51FD` (brand) | Fills that carry `--on-accent` text: the A mark, the current step |
+| `--accent-text` | `#9DB2FF` | `#2442C9` | The same hue as text: tags, token names |
+| `--accent-soft` | accent 26% | `#EEF2FF` | The content box in the spacing diagram |
 
-`--accent` stays brand-exact on light. On dark `#2A51FD` does not hold against
-near-black, so it lifts to `#3B63FF`: legibility over brand exactness, on the
-one theme where the brand value fails.
+One accent, used sparingly. The active unit or device is a raised neutral chip,
+not an accent fill: it is a setting, not a call to action.
 
 ### Status
 
@@ -116,11 +118,11 @@ Three things changed here, all for sites the old colours failed on:
 
 ### Box model
 
-Margin orange, border yellow, padding green, content blue: the order DevTools
-taught everyone. Each is a token (`--box-margin`, `--box-border`,
-`--box-padding`, `--box-content`) with a dark and a light value. The content
-tint is laid on the panel ground rather than on the three tints above it, which
-used to turn the blue olive.
+One quiet tint for the rings and the accent for the content: `--box-ring`,
+`--box-ring-line`, `--accent-soft`. It was four colours in the DevTools order,
+which made it the loudest thing on the panel. Border is no longer a ring; it is
+a row under the diagram, because it is almost always 0 or 1px and a ring of
+zeros was a third of the drawing.
 
 ## Type
 
@@ -135,20 +137,21 @@ guarded and the stack falls back to the platform fonts.
 | Labels, values, inspector readouts, section titles | IBM Plex Mono |
 | Hints and prose | Plus Jakarta Sans |
 
-Row labels are sans and values are mono: a label is read as a word, a value as
-a number that has to align with the one above it. Uppercase micro labels are
-mono.
+Sans throughout, with tabular figures so digits still align. Mono is kept for
+the things that are code: selectors, token names, hex values, and the labels
+drawn on the page.
 
 | Style | Size / weight / tracking |
 | --- | --- |
-| Section title, tile label, ring label | 10px / 500 mono, uppercase, `0.03em` to `0.14em`, `--text-2` |
-| Tile value | 20px / 500 mono / `-0.02em`, `--text`. 28px for a single distance |
-| Label (`dt`) | 12px / 400 sans, `--text-2` |
-| Value (`dd`) | 12px / 450 mono, `--text`, right-aligned |
+| Section title | 12px / 600 sans, sentence case, `--text` |
+| Hero label | 11.5px / 400 sans, `--text-2` |
+| Hero value | 22px / 500 sans, tabular / `-0.02em`. 34px for a single distance |
+| Label (`dt`) | 12.5px / 400 sans, `--text-2` |
+| Value (`dd`) | 12.5px / 500 sans, tabular, `--text`, right-aligned |
 | Selection identity | 12.5px / 500 mono |
 | Status line, steps | 12 to 12.5px / 400 sans |
 
-**Nothing on the panel is under 10px, and values are 12px.** v1 set 50 of its
+**Nothing on the panel is under 10px, and values are 12.5px.** v1 set 50 of its
 74 text elements under 11px, down to 8px, to fit a 330px card. The browser
 suite asserts the floor.
 
@@ -157,7 +160,9 @@ suite asserts the floor.
 
 A 4px base. Used values: 2, 4, 6, 8, 10, 12, 14.
 
-- Panel width: `360px`, full height, docked to an edge.
+- Panel width: `360px`, full height, docked to an edge. The stage takes the rest.
+- Stage toolbar: `48px` tall, the same height as the panel header, so the two
+  read as one bar.
 - Section padding: `12px 14px`.
 - Label column: fixed `104px`, so values align down the whole panel.
 - Click targets: 28px icon buttons, 24px minimum for everything else. The
@@ -177,14 +182,29 @@ Dimension labels get a small `0 1px 4px` to stay readable over busy pages.
 
 ## Components
 
+### Stage
+
+The page, framed, on a dotted canvas. One toolbar across the top, flush with
+the panel header, in this order: Inspect / Interact, the device icons and Fit,
+the size list, width × height, rotate, and the zoom at the far right.
+
+The frame has a 10px radius, a hairline ring and a soft shadow, with a caption
+above it: device, size, zoom. It is laid out at its true size and scaled with a
+transform, so the page inside always sees real pixels and the marks drawn on it
+scale with it.
+
+Segmented controls here and in the panel are the same component: a well with a
+raised chip for the active choice.
+
 ### Panel
 
 Three regions that never move: a header (name, units, dock edge, theme,
 close), a scrolling body, and a status footer.
 
-The body in reading order: first-run steps, selection, hero tiles, the two
-measured elements, Media, Typography, Spacing, Layout, Fill & effects,
-Shortcuts. Every titled section folds from its title and remembers it.
+The body in reading order: a notice when device sizes are unavailable,
+first-run steps, selection, hero values, the two measured elements, Media,
+Typography, Spacing, Layout, Fill & effects, Shortcuts. Every titled section
+folds from its title and remembers it.
 
 Sections with nothing meaningful to report are omitted, not shown empty. An
 image has no typography; a static div has no fill.
@@ -211,27 +231,22 @@ A dot in the state's colour, one sentence saying what the next click does, and
 a Clear button whenever something is locked. It is on `--bg-sunken` because it
 is the tool talking to you rather than data about the page.
 
-### Stat tiles
+### Hero values
 
-The three values you are actually checking, directly under the header, before
-anything else. Which three depends on what the element is:
+The three values you are actually checking, directly under the selection.
+Which three depends on what the element is:
 
-| Element | Tiles |
+| Element | Values |
 | --- | --- |
 | Renders its own text | `Size` · `Weight` · `Line height` |
-| Flex or grid container | `W` · `H` · `Gap` |
-| Anything else | `W` · `H` |
+| Flex or grid container | `Width` · `Height` · `Gap` |
+| Anything else | `Width` · `Height` |
+| While measuring | The distance, or one per edge |
 
-Tile is `--bg-raised` with a hairline, 8px radius, equal-width grid with an 8px
-gutter. While measuring, the tiles carry the distance instead and take a
-`--measure` border.
-
-**The unit lives in the label, not the value.** `WIDTH PX` over `1200`, not
-`1200px`. Every tile shares the unit, the toggle in the header already states
-it, and the number needs the width: a truncated `123.…` is worse than useless
-during QA. Copying a tile still copies the full value with its unit.
-
-A qualifier rides after the value at 11px `--text-2`: `700 Bold`, `38.4 1.2x`.
+A quiet label over a large figure, with nothing around it. The unit rides
+after the number, small and dim, so the figure is what the eye lands on. A
+qualifier follows the same way: `700 Bold`, `46 px 1.15x`. Copying still copies
+the full value with its unit.
 
 When the type trio is on show, those three rows are dropped from the Typography
 section below, so nothing is stated twice.
@@ -252,16 +267,13 @@ Cursor is `copy`.
 
 ### Spacing box
 
-Four nested rings, outside in: margin (amber tint), border (grey tint), padding
-(green tint), content (blue tint). Each ring is dashed, labelled at its top-left
-in 10px uppercase, with its four side values placed on the corresponding sides.
+Nested rings, outside in: margin, padding, content. Each ring is labelled at
+its top-left with its four side values on the corresponding sides. Zero sides
+are dimmed to `--text-3`, never hidden, so the diagram keeps a stable shape.
+The content box shows width and height as separate rows.
 
-Zero sides are dimmed to `--text-3`, never hidden, so the diagram keeps a stable
-shape. The content box shows width and height as separate `W` / `H` rows: in rem
-a single `W x H` line gets long enough to wrap and shove the rings around.
-
-When the element is a flex or grid container, its `gap` is stated directly under
-the diagram. Gap versus padding is the confusion this panel exists to end.
+Under it, as rows: border, radius, and the container's `gap` when there is
+one. Gap versus padding is the confusion this panel exists to end.
 
 ### Shortcuts
 
@@ -316,6 +328,7 @@ What moves is decided by how often it happens.
 | Moment | Frequency | Motion |
 | --- | --- | --- |
 | Panel opens | A few times a session | Slides out of its edge. 220ms, `--ease-drawer` |
+| Device or size changes | Occasional | **No animation.** A frame that tweens through every width in between makes the page reflow at each one |
 | Panel closes | A few times a session | Slides back into the same edge. 160ms, `--ease-out` |
 | Panel flips sides | Rare | Travels the distance it moved. 220ms, `--ease-in-out` |
 | A section unfolds | Occasional | Fades in and settles 4px. 160ms, `--ease-out` |
@@ -382,7 +395,8 @@ that gets a filled accent ground.
 
 ## A/B pair
 
-Two stacked blocks on `--bg-raised`, 8px radius. Each carries a 16px lettered
-mark in the same colour as that element's on-page highlight (`--hl-a`,
-`--hl-b`), so the block and the box it describes are obviously the same thing.
-Keys are 11px `--text-2`, values 12px/500 `--text`.
+Two rows, one per element: a 16px lettered mark in the same colour as that
+element's on-page highlight (`--hl-a`, `--hl-b`), its selector in mono, and the
+one fact that identifies it on the right. Text gets size and weight, anything
+else gets width × height. While measuring, these rows replace the selection
+block, which would only say the same thing.

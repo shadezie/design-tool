@@ -104,6 +104,12 @@
 
   --shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), -12px 0 32px rgba(0, 0, 0, 0.25);
 
+  /* The stage: a dotted canvas the framed page sits on. */
+  --canvas: #0a0b0c;
+  --dots: rgba(255, 255, 255, 0.09);
+  --frame-ring: rgba(255, 255, 255, 0.16);
+  --panel-w: min(360px, calc(100vw - 96px));
+
   /* The built-in easings are too soft to read as intentional at these
      durations. Only press feedback and hover use them: the panel's contents
      re-render on every hover, which is far too often to animate. */
@@ -150,6 +156,10 @@
   --box-ring-line: #ebebed;
 
   --shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), -12px 0 32px rgba(0, 0, 0, 0.05);
+
+  --canvas: #f1f1f2;
+  --dots: rgba(17, 17, 19, 0.1);
+  --frame-ring: rgba(17, 17, 19, 0.14);
 }
 
 /* ---------- element highlights ---------- */
@@ -221,6 +231,150 @@
   box-shadow: 0 0 0 1px var(--halo), 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* ---------- the stage ---------- */
+
+/* With the stage up, the layer stops being a transparent sheet over the page
+   and becomes the whole window: canvas, toolbar and frame on one side, the
+   panel on the other. The original page is underneath, covered and quiet. */
+.layer[data-mode="arena"] {
+  pointer-events: auto;
+  background: var(--canvas);
+}
+.layer[data-mode="arena"] .panel { box-shadow: -1px 0 0 var(--line); }
+.layer[data-mode="arena"][data-side="left"] .panel { box-shadow: 1px 0 0 var(--line); }
+
+.stage {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: var(--panel-w);
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  font: 400 12.5px/1.45 var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+.layer[data-side="left"] .stage { left: var(--panel-w); right: 0; }
+.stage :focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+
+.tb {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+.tb .grow { flex: 1; }
+.tb .read { color: var(--text-2); font-size: 12px; white-space: nowrap; }
+
+.seg {
+  flex: none;
+  display: flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+}
+.seg button {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-2);
+  font: 500 12px/1 var(--sans);
+  cursor: pointer;
+  transition: color var(--press) ease, transform var(--press) var(--ease-out);
+}
+.seg.dev button { padding: 0 8px; }
+.seg.dev .fit-btn { padding: 0 10px; }
+.seg button svg { width: 15px; height: 15px; display: block; }
+.seg button[aria-pressed="true"] {
+  background: var(--seg);
+  color: var(--text);
+  box-shadow: var(--seg-shadow);
+}
+@media (hover: hover) and (pointer: fine) {
+  .seg button:hover { color: var(--text); }
+}
+.seg button:active { transform: scale(0.97); }
+
+.field {
+  flex: none;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  color: var(--text);
+  font: 500 12px/1 var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+select.field { max-width: 176px; padding: 0 8px; }
+select.field:disabled { color: var(--text-2); opacity: 1; }
+input.field { width: 56px; padding: 0 4px; text-align: center; appearance: textfield; }
+input.field::-webkit-outer-spin-button,
+input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.wh { flex: none; display: flex; align-items: center; gap: 5px; color: var(--text-3); }
+
+.ibtn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.ibtn svg { width: 15px; height: 15px; display: block; }
+.ibtn:disabled { opacity: 0.35; cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  .ibtn:not(:disabled):hover { background: var(--hover); color: var(--text); }
+}
+
+.view {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding-top: 16px;
+  background: radial-gradient(circle, var(--dots) 1px, transparent 1.2px) 0 0 / 18px 18px;
+}
+
+.fit { position: relative; }
+.caption {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  color: var(--text-2);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.caption b { color: var(--text); font-weight: 500; }
+
+/* The page itself. Always its own colours: the tool's theme stops at the
+   frame's edge. White behind it, as a browser would paint. */
+.frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 0;
+  border-radius: 10px;
+  background: #fff;
+  transform-origin: 0 0;
+  box-shadow: 0 0 0 1px var(--frame-ring), 0 20px 50px rgba(0, 0, 0, 0.14);
+}
+.stage[data-loading] .frame { opacity: 0.4; }
+
 /* ---------- the panel ---------- */
 
 /* Docked to one edge, full height, always there while the tool is on. It was
@@ -232,7 +386,7 @@
   top: 0;
   bottom: 0;
   right: 0;
-  width: min(360px, calc(100vw - 96px));
+  width: var(--panel-w);
   display: flex;
   flex-direction: column;
   pointer-events: auto;
@@ -386,6 +540,15 @@
 /* The step you are on. */
 .guide li.is-now { color: var(--text); }
 .guide li.is-now .guide-n { background: var(--accent); color: var(--on-accent); }
+
+.notice {
+  margin: 0 14px 12px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  color: var(--text-2);
+  font: 400 12px/1.45 var(--sans);
+}
 
 .empty {
   padding: 28px 14px;
@@ -834,7 +997,7 @@ kbd {
 .pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
+  gap: 4px;
 }
 
 .pair-col { min-width: 0; }
@@ -844,9 +1007,11 @@ kbd {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  min-height: 24px;
 }
 
 .pair-name {
+  flex: 1;
   min-width: 0;
   color: var(--text);
   font: 400 12px/1.4 var(--mono);
@@ -855,10 +1020,16 @@ kbd {
   white-space: nowrap;
 }
 
-.pair-facts { display: flex; flex-wrap: wrap; gap: 0 14px; margin: 2px 0 0 24px; }
-.pair-fact { display: inline-flex; align-items: baseline; gap: 5px; }
-.pair-key { color: var(--text-2); font: 400 11.5px/1.7 var(--sans); }
-.pair-val { color: var(--text); font: 500 12px/1.7 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* One line each: which element, then the one fact that identifies it. */
+.pair-sum {
+  flex: none;
+  margin-left: auto;
+  padding-left: 10px;
+  color: var(--text-2);
+  font: 400 12.5px/1.4 var(--sans);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 .mlead-kind {
   margin: 0 0 8px;

@@ -66,7 +66,7 @@
   }
 
   function eachSheet(fn) {
-    for (const sheet of document.styleSheets) {
+    for (const sheet of DT.target.doc.styleSheets) {
       let rules;
       try {
         rules = sheet.cssRules;
@@ -161,7 +161,7 @@
 
     // Frameworks that write tokens at runtime put them on the root's style
     // attribute, where no stylesheet rule mentions them.
-    for (const host of [document.documentElement, document.body]) {
+    for (const host of [DT.target.doc.documentElement, DT.target.doc.body]) {
       const inline = host?.style;
       if (!inline) continue;
       for (let i = 0; i < inline.length; i++) {
@@ -172,8 +172,9 @@
 
     if (!names.size) return;
 
-    const rootStyle = getComputedStyle(document.documentElement);
-    const bodyStyle = document.body ? getComputedStyle(document.body) : null;
+    const { doc } = DT.target;
+    const rootStyle = DT.target.cs(doc.documentElement);
+    const bodyStyle = doc.body ? DT.target.cs(doc.body) : null;
 
     for (const name of names) {
       const value =

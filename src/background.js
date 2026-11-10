@@ -8,11 +8,13 @@
 const CONTENT_FILES = [
   'src/ui/overlay-styles.js',
   'src/content/prefs.js',
+  'src/content/target.js',
   'src/content/units.js',
   'src/content/tokens.js',
   'src/content/styles.js',
   'src/content/measure.js',
   'src/content/overlay.js',
+  'src/content/stage.js',
   'src/content/spacing-box.js',
   'src/content/card.js',
   'src/content/inspect.js',

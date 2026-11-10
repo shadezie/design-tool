@@ -26,9 +26,10 @@
    * the document scaffolding removed.
    */
   function stackAt(x, y) {
-    return document
+    const { doc } = DT.target;
+    return doc
       .elementsFromPoint(x, y)
-      .filter((node) => node.id !== 'designtool-root' && node !== document.documentElement);
+      .filter((node) => node.id !== 'designtool-root' && node !== doc.documentElement);
   }
 
   /**
@@ -37,7 +38,7 @@
    * overlays, and those were winning every hover.
    */
   function paints(el) {
-    const cs = getComputedStyle(el);
+    const cs = DT.target.cs(el);
     return cs.visibility !== 'hidden' && Number(cs.opacity) !== 0;
   }
 
@@ -59,7 +60,7 @@
    */
   function pick(x, y, deep) {
     const visible = stackAt(x, y).filter(paints);
-    if (!visible.length) return document.body || null;
+    if (!visible.length) return DT.target.doc.body || null;
     if (!deep) return visible[0];
 
     // Smallest box wins, deeper node breaks the tie. DOM depth alone is not
@@ -95,6 +96,7 @@
    * @returns {Function} unbind
    */
   function bind(handlers) {
+    const framed = DT.target.framed;
     let frame = 0;
     let pending = null;
     let mod = false;
@@ -107,7 +109,11 @@
       });
     }
 
+    // Interact mode: the page gets its events back and the tool stands down.
+    const paused = () => handlers.paused?.() === true;
+
     function onMouseMove(event) {
+      if (paused()) return;
       setMod(event.metaKey || event.ctrlKey);
       if (overlay.ownsEvent(event)) return;
       pending = { x: event.clientX, y: event.clientY };
@@ -133,6 +139,9 @@
     }
 
     function onMouseLeave(event) {
+      // Leaving the stage's frame is how you reach the panel. Keep what was
+      // hovered, or the panel would empty out on the way to reading it.
+      if (framed) return;
       if (event.relatedTarget === null) handlers.onLeave();
     }
 
@@ -142,6 +151,7 @@
     let pressedOnUI = false;
 
     function suppress(event) {
+      if (paused()) return;
       const isPress = event.type === 'mousedown' || event.type === 'pointerdown';
       if (overlay.ownsEvent(event)) {
         if (isPress) pressedOnUI = true;
@@ -160,6 +170,8 @@
     }
 
     function onKeyDown(event) {
+      // The page may be typing into a form. None of these keys are ours then.
+      if (paused()) return;
       onModifier(event);
       if (event.key === 'Escape') {
         // Only swallow it when there is a selection to clear. With nothing
@@ -189,30 +201,50 @@
     }
 
     function onWheel(event) {
-      if (!event.altKey || overlay.ownsEvent(event)) return;
+      if (paused() || !event.altKey || overlay.ownsEvent(event)) return;
       event.preventDefault();
       event.stopPropagation();
       handlers.onWalk(event.deltaY > 0 ? 1 : -1);
     }
 
+    // The page being inspected, which is the stage's frame when there is one.
+    // Keys are also heard on the top window then, because after a click on
+    // the panel that is where focus is.
+    const win = DT.target.win;
+    const keyWindows = framed ? [win, window] : [win];
+
     const options = { capture: true };
-    window.addEventListener('mousemove', onMouseMove, options);
-    window.addEventListener('keyup', onModifier, options);
-    window.addEventListener('blur', onBlur);
-    window.addEventListener('mouseout', onMouseLeave, options);
-    window.addEventListener('keydown', onKeyDown, options);
-    window.addEventListener('wheel', onWheel, { capture: true, passive: false });
-    for (const type of SUPPRESSED) window.addEventListener(type, suppress, options);
+    win.addEventListener('mousemove', onMouseMove, options);
+    win.addEventListener('mouseout', onMouseLeave, options);
+    win.addEventListener('wheel', onWheel, { capture: true, passive: false });
+    for (const type of SUPPRESSED) win.addEventListener(type, suppress, options);
+    for (const target of keyWindows) {
+      target.addEventListener('keydown', onKeyDown, options);
+      target.addEventListener('keyup', onModifier, options);
+      target.addEventListener('blur', onBlur);
+    }
 
     return function unbind() {
       if (frame) cancelAnimationFrame(frame);
-      window.removeEventListener('mousemove', onMouseMove, options);
-      window.removeEventListener('keyup', onModifier, options);
-      window.removeEventListener('blur', onBlur);
-      window.removeEventListener('mouseout', onMouseLeave, options);
-      window.removeEventListener('keydown', onKeyDown, options);
-      window.removeEventListener('wheel', onWheel, { capture: true });
-      for (const type of SUPPRESSED) window.removeEventListener(type, suppress, options);
+      // A frame that has navigated away has already dropped its listeners,
+      // and touching its old window can throw.
+      try {
+        win.removeEventListener('mousemove', onMouseMove, options);
+        win.removeEventListener('mouseout', onMouseLeave, options);
+        win.removeEventListener('wheel', onWheel, { capture: true });
+        for (const type of SUPPRESSED) win.removeEventListener(type, suppress, options);
+      } catch {
+        // Gone with the document.
+      }
+      for (const target of keyWindows) {
+        try {
+          target.removeEventListener('keydown', onKeyDown, options);
+          target.removeEventListener('keyup', onModifier, options);
+          target.removeEventListener('blur', onBlur);
+        } catch {
+          // Same.
+        }
+      }
     };
   }
 

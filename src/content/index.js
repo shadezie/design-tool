@@ -10,7 +10,7 @@
   if (DT.booted) return;
   DT.booted = true;
 
-  const { units, styles, overlay, card, inspect, measure, prefs } = DT;
+  const { units, styles, overlay, card, inspect, measure, prefs, stage, target: targets } = DT;
 
   let state = 'idle';
   let unbind = null;
@@ -23,6 +23,12 @@
   // Cmd (macOS) or Ctrl is held. With A locked, that is what asks for a
   // measurement; without it, hovering only shows what a click would select.
   let modifier = false;
+  // The stage is still loading the page, or the page has its clicks back.
+  // Either way there is nothing to inspect, and the panel says which.
+  let loading = false;
+  let paused = false;
+  // Why device sizes are unavailable on this page, when they are.
+  let notice = null;
   let cardSignature = '';
   let lastMeasureKey = '';
   let armToken = 0;
@@ -70,7 +76,8 @@
     }
     if (hoverEl && !alive(hoverEl)) hoverEl = null;
 
-    const target = subject();
+    const idleMode = loading ? 'loading' : paused ? 'interact' : null;
+    const target = idleMode ? null : subject();
     if (!target) {
       overlay.clearHighlights();
       if (lastMeasureKey !== 'none') {
@@ -78,9 +85,10 @@
         overlay.setMeasurement(null, () => '');
       }
       // The panel is there from the first frame, with nothing selected yet.
-      if (cardSignature !== 'empty') {
-        cardSignature = 'empty';
-        card.render(null, { state, measuring: false, measurement: null, pair: null });
+      const emptyKey = `empty|${idleMode}|${units.mode}`;
+      if (cardSignature !== emptyKey) {
+        cardSignature = emptyKey;
+        card.render(null, { state, measuring: false, measurement: null, pair: null, mode: idleMode, notice });
       }
       return;
     }
@@ -150,7 +158,7 @@
 
     const outerEl = oneIsOuter ? elOne : elTwo;
     const outerRect = oneIsOuter ? rectOne : rectTwo;
-    const cs = getComputedStyle(outerEl);
+    const cs = targets.cs(outerEl);
     const shrunk = {
       top: outerRect.top + (parseFloat(cs.borderTopWidth) || 0),
       right: outerRect.right - (parseFloat(cs.borderRightWidth) || 0),
@@ -191,7 +199,7 @@
     // compare against, which is why it happens here and not in the paint loop.
     const pair = result && partner ? { a: data, b: styles.read(partner) } : null;
 
-    card.render(data, { measurement: result, pair, state, measuring });
+    card.render(data, { measurement: result, pair, state, measuring, notice });
   }
 
   // ------------------------------------------------------------ interactions
@@ -316,10 +324,51 @@
       onSelect: select,
     });
     modifier = false;
+    paused = false;
+    notice = null;
+    loading = true;
     setState('armed');
-    unbind = inspect.bind({ onMove, onPick, onWalk, onEscape, onLeave, onCycleUnits, onModifier });
     window.addEventListener('resize', onResize);
     if (!rafId) rafId = requestAnimationFrame(paint);
+
+    // The stage answers with what to inspect: its frame, or this window when
+    // the page cannot be framed. It answers again each time the frame
+    // navigates, since that is a new document.
+    stage.open({
+      onTarget: (win, doc, info) => {
+        if (token !== armToken) return;
+        retarget(win, doc, info);
+      },
+      onResize,
+      onMode: (interact) => {
+        paused = interact;
+        elA = elB = hoverEl = null;
+        setState('armed');
+      },
+    });
+  }
+
+  /** Point the whole inspector at a window: listeners, marks, units, tokens. */
+  function retarget(win, doc, info) {
+    unbind?.();
+    elA = elB = hoverEl = null;
+    targets.set(win, doc);
+    overlay.attachMarks(doc);
+    units.refreshRoot();
+    DT.tokens?.invalidate();
+    loading = false;
+    notice = info.notice;
+    setState('armed');
+    unbind = inspect.bind({
+      onMove,
+      onPick,
+      onWalk,
+      onEscape,
+      onLeave,
+      onCycleUnits,
+      onModifier,
+      paused: () => paused,
+    });
   }
 
   function disarm(notify) {
@@ -332,6 +381,9 @@
     if (rafId) cancelAnimationFrame(rafId);
     rafId = 0;
     elA = elB = hoverEl = null;
+    loading = paused = false;
+    stage.close();
+    targets.reset();
     overlay.unmount();
 
     if (notify) {
@@ -346,10 +398,14 @@
   }
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === 'designtool:ping' && window !== window.top) return false;
     if (message?.type === 'designtool:ping') {
       sendResponse({ ok: true });
       return false;
     }
+    // The stage frames this page inside itself, and the frame must not start
+    // a stage of its own. Only the top window answers the toolbar.
+    if (message?.type === 'designtool:toggle' && window !== window.top) return false;
     if (message?.type === 'designtool:toggle') {
       if (message.armed) arm().then(() => sendResponse({ ok: true, state }));
       else {

@@ -382,9 +382,8 @@ background loop, because calling it "video" implies something a visitor plays.
 
 ## v2: the side panel
 
-The first half of v2. The second half is the arena: the page framed at a
-device size beside the panel. This half ships on its own because it fixes most
-of what a usability pass found, at low risk.
+The first half of v2. The second half is the stage, further down: the page
+framed at a device size beside the panel.
 
 ### The floating card became a docked panel
 
@@ -460,9 +459,100 @@ floor for uppercase labels and 12px for values, 24px for click targets, and
 every copyable value is a focusable control. The browser suite asserts all
 three, because none of them survive a redesign otherwise.
 
+## v2: Quiet and Ink
+
+The first panel looked like a tool trying to look like a tool: bordered tiles,
+uppercase mono labels, a tinted first-run block, a four-colour box model. Three
+directions were drawn against inspector panels from Jitter, Framer, Subframe,
+Linear, Rive and MagicPath, and two were chosen as one system: Quiet in light,
+Ink in dark.
+
+What they share is the decision that matters: no containers. Hairlines and
+type weight carry the structure, and the numbers carry the emphasis. Numbers
+are sans in both themes, with tabular figures; mono is kept for what is
+actually code.
+
+## v2: the stage
+
+### The page is framed, not emulated
+
+Turning the tool on loads the same URL into a same-origin iframe beside the
+panel, and the inspector reads that frame. An iframe has a viewport of its own,
+so a 390px frame gets the page's real 390px layout: media queries, `vh`,
+container sizes.
+
+Three other routes were ruled out.
+
+- **`chrome.debugger` emulation** is true device emulation, and it is also the
+  permission with the heaviest install warning and a "started debugging this
+  browser" banner on every use. It would end the three-permission install.
+- **Resizing the browser window** needs no permission and cannot scale: a
+  1920px view does not fit on a laptop.
+- **Squeezing the live page with a margin** narrows the layout while media
+  queries still see the full window, which is a layout no real screen produces.
+
+The cost of the frame is listed in the README: the page loads a second time,
+in-memory state starts over, and the stage sets a viewport, not a user agent
+or a pixel density.
+
+### One seam: `DT.target`
+
+Every module read `window` and `document` directly. They now read
+`DT.target`, which is the top window until the stage hands over its frame.
+Computed styles are asked of the element's own window, because a style read
+through the wrong one resolves media queries against the wrong viewport, and
+that is the one mistake a device frame cannot make.
+
+Highlights and dimension lines moved with it. They are drawn in a second
+shadow root inside the framed document, so they scroll with the page and are
+scaled by the same transform. Drawing them in the top layer would have meant
+mapping every rect through the zoom on every frame.
+
+### A frame attached without a source looks like a refusal
+
+Found by the first run of the stage tests. An iframe appended before its `src`
+is set loads `about:blank` and fires `load` for it. That document is not http,
+which is exactly how a refused frame is recognised, so the stage gave up before
+the real page had started loading. The source is set before the frame is
+attached.
+
+### Refusal is detected, not predicted
+
+There is no way to know in advance whether a site allows framing. The stage
+tries, and a frame whose document cannot be read is a refusal: `X-Frame-Options:
+DENY`, `frame-ancestors 'none'`, a CSP that forbids `frame-src`, or a `file://`
+page. The tool then inspects in place and says why device sizes are missing. A
+ten second timeout covers a frame that never loads at all.
+
+### Only the top window answers the toolbar
+
+The stage frames the page inside itself. If the framed copy also ran the tool,
+it would open a stage of its own. Subframes ignore the toggle, which also ends
+the old behaviour of each iframe running an independent copy.
+
+### Interact is the tool standing down, not a second mode of it
+
+While inspecting, the page gets no clicks. Interact returns them, so a menu can
+be opened or a link followed, and the frame's next `load` re-points the
+inspector at the new document. In Interact every key belongs to the page too:
+someone typing "u" into a form is not asking to change units.
+
+### Fit is where it opens
+
+Opening straight at a device size would change the page the moment the tool
+is turned on. Fit is the largest size the stage can show at 100%, so the first
+thing a user sees is their page, framed, unchanged.
+
+### No network throttling
+
+Asked for, and declined for the same reason as debugger emulation: it is only
+available through that permission. DevTools does it well and works alongside
+this tool. A separate build with the debugger permission remains an option if
+slow-network QA turns out to matter enough.
+
 ### What is deliberately not here yet
 
-- Device frames and the stage. Next.
-- An Inspect / Interact switch, so a menu can be opened and then measured.
+- Dragging the frame's edge to resize it.
+- Remembering a stage size per site rather than globally.
 - New README and store screenshots. The existing ones are hand-made captures
   of real sites and show the old card.

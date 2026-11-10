@@ -12,6 +12,7 @@
 
   const HOST_ID = 'designtool-root';
   const MAX_Z = '2147483647';
+  const HOST_STYLE = `position:fixed;top:0;left:0;width:0;height:0;margin:0;padding:0;border:0;z-index:${MAX_Z};pointer-events:none;`;
 
   let host = null;
   let root = null;
@@ -21,6 +22,11 @@
   let body = null;
   let foot = null;
   let loadedFonts = [];
+  // Where highlights and dimension lines are drawn. In place, that is our own
+  // layer. With the stage, it is a second layer inside the framed document,
+  // so the marks scroll and scale with the page they describe.
+  let markHost = null;
+  let markLayer = null;
   const highlights = new Map();
   let measureNodes = [];
 
@@ -35,13 +41,17 @@
     box.style.display = 'none';
     const tag = el('span', 'hl-tag');
     box.appendChild(tag);
-    layer.appendChild(box);
+    markLayer.appendChild(box);
     const entry = { box, tag };
     highlights.set(kind, entry);
     return entry;
   }
 
   const overlay = {
+    get layer() {
+      return layer;
+    },
+
     /** The docked panel, and its three regions. */
     get panel() {
       return panel;
@@ -79,7 +89,7 @@
       host.id = HOST_ID;
       // Inline, and re-asserted on every frame, because some pages have
       // aggressive `div { ... }` rules or scripts that reshuffle the DOM.
-      host.style.cssText = `position:fixed;top:0;left:0;width:0;height:0;margin:0;padding:0;border:0;z-index:${MAX_Z};pointer-events:none;`;
+      host.style.cssText = HOST_STYLE;
 
       root = host.attachShadow({ mode: 'closed' });
       const style = el('style');
@@ -100,11 +110,9 @@
 
       overlay.setTheme(prefs.get('theme'));
       overlay.setSide(prefs.get('side'));
-      loadFonts();
-
-      makeHighlight('hover');
-      makeHighlight('a');
-      makeHighlight('b');
+      overlay.setMode('inplace');
+      loadFonts(document);
+      overlay.attachMarks(document);
 
       document.documentElement.appendChild(host);
       overlay.motion(panel, 'enter');
@@ -114,11 +122,53 @@
       layer?.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
     },
 
+    /** 'arena' when the page is framed on the stage, 'inplace' otherwise. */
+    setMode(mode) {
+      layer?.setAttribute('data-mode', mode);
+    },
+
+    /**
+     * Point the highlights and dimension lines at a document.
+     * @param {Document} doc the top document, or the stage frame's
+     */
+    attachMarks(doc) {
+      overlay.detachMarks();
+      if (doc === document) {
+        markLayer = layer;
+      } else {
+        markHost = doc.createElement('div');
+        markHost.id = HOST_ID;
+        markHost.style.cssText = HOST_STYLE;
+        const markRoot = markHost.attachShadow({ mode: 'closed' });
+        const style = doc.createElement('style');
+        style.textContent = DT.css;
+        markLayer = doc.createElement('div');
+        markLayer.className = 'layer';
+        markRoot.append(style, markLayer);
+        doc.documentElement.appendChild(markHost);
+        loadFonts(doc);
+      }
+      makeHighlight('hover');
+      makeHighlight('a');
+      makeHighlight('b');
+    },
+
+    detachMarks() {
+      for (const { box } of highlights.values()) box.remove();
+      for (const node of measureNodes) node.remove();
+      highlights.clear();
+      measureNodes = [];
+      markHost?.remove();
+      markHost = null;
+      markLayer = null;
+    },
+
     /** @param {boolean} [animate] true when the user asked for the move */
     setSide(side, animate) {
       if (!panel) return;
       const before = animate ? panel.getBoundingClientRect().left : 0;
       panel.setAttribute('data-side', side === 'left' ? 'left' : 'right');
+      layer.setAttribute('data-side', side === 'left' ? 'left' : 'right');
       if (animate) overlay.motion(panel, 'flip', { dx: before - panel.getBoundingClientRect().left });
     },
 
@@ -168,9 +218,9 @@
     },
 
     unmount() {
-      for (const face of loadedFonts) {
+      for (const [fontDoc, face] of loadedFonts) {
         try {
-          document.fonts.delete(face);
+          fontDoc.fonts.delete(face);
         } catch {
           // Already gone, or the document is being torn down.
         }
@@ -180,8 +230,7 @@
       // on a host this module has already let go of, so arming again mid-exit
       // just builds a fresh one.
       const leaving = host;
-      for (const { box } of highlights.values()) box.remove();
-      for (const node of measureNodes) node.remove();
+      overlay.detachMarks();
       const exit = overlay.motion(panel, 'exit');
       if (exit && leaving) {
         panel.style.pointerEvents = 'none';
@@ -190,14 +239,16 @@
         leaving?.remove();
       }
       host = root = layer = panel = head = body = foot = null;
-      highlights.clear();
-      measureNodes = [];
     },
 
     /** Keep the host attached and on top even if the page rewrites the DOM. */
     reassert() {
       if (host && host.parentNode !== document.documentElement) {
         document.documentElement.appendChild(host);
+      }
+      const markDoc = markHost?.ownerDocument;
+      if (markDoc?.documentElement && markHost.parentNode !== markDoc.documentElement) {
+        markDoc.documentElement.appendChild(markHost);
       }
     },
 
@@ -249,8 +300,10 @@
    * declared inside one. A strict font-src CSP can still refuse them, so every
    * step is guarded and the stylesheet falls back to the platform stack.
    */
-  function loadFonts() {
-    if (typeof FontFace !== 'function' || !document.fonts) return;
+  function loadFonts(doc) {
+    // Faces belong to the window that made them, so the frame gets its own.
+    const FontFace = doc.defaultView?.FontFace;
+    if (typeof FontFace !== 'function' || !doc.fonts) return;
     for (const [family, file, descriptors] of DT.FONTS) {
       try {
         const url = chrome.runtime.getURL(`src/fonts/${file}`);
@@ -258,8 +311,8 @@
         face
           .load()
           .then(() => {
-            document.fonts.add(face);
-            loadedFonts.push(face);
+            doc.fonts.add(face);
+            loadedFonts.push([doc, face]);
           })
           .catch(() => {
             // Page CSP blocked it; the fallback stack takes over.
@@ -279,7 +332,7 @@
     line.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
     line.style.width = `${seg.axis === 'h' ? Math.round(w) : 1}px`;
     line.style.height = `${seg.axis === 'v' ? Math.round(h) : 1}px`;
-    layer.appendChild(line);
+    markLayer.appendChild(line);
     measureNodes.push(line);
 
     if (!isGuide) {
@@ -297,7 +350,7 @@
     const dx = axis === 'h' ? 0 : -(long - 1) / 2;
     const dy = axis === 'v' ? 0 : -(long - 1) / 2;
     cap.style.transform = `translate(${Math.round(x + dx)}px, ${Math.round(y + dy)}px)`;
-    layer.appendChild(cap);
+    markLayer.appendChild(cap);
     measureNodes.push(cap);
   }
 
@@ -311,7 +364,7 @@
     const offY = seg.axis === 'h' ? -12 : 0;
     label.style.left = `${Math.round(cx + offX)}px`;
     label.style.top = `${Math.round(cy + offY)}px`;
-    layer.appendChild(label);
+    markLayer.appendChild(label);
     measureNodes.push(label);
   }
 

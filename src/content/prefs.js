@@ -18,6 +18,8 @@
     folds: {},
     /** true once a measurement has been kept, or the steps were dismissed */
     onboarded: false,
+    /** {cls, w, h}: the stage size last used. cls is a device class or 'fit' */
+    device: null,
   };
 
   let state = { ...DEFAULTS };

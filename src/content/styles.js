@@ -138,13 +138,13 @@
    */
   function readMedia(el) {
     const tag = el.tagName.toLowerCase();
-    const cs = getComputedStyle(el);
+    const cs = DT.target.cs(el);
 
     if (tag === 'video') return videoInfo(el, cs);
     if (tag === 'img') return imageInfo(el, cs);
     if (tag === 'picture') {
       const img = el.querySelector('img');
-      return img ? imageInfo(img, getComputedStyle(img), 'picture') : null;
+      return img ? imageInfo(img, DT.target.cs(img), 'picture') : null;
     }
     if (tag === 'svg') {
       return { kind: 'Vector', format: 'SVG', inline: true, fit: null };
@@ -254,7 +254,7 @@
 
     /** @param {Element} el */
     read(el) {
-      const cs = getComputedStyle(el);
+      const cs = DT.target.cs(el);
       const rect = el.getBoundingClientRect();
       const fontSize = parse(cs.fontSize) || 16;
 

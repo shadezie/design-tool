@@ -230,7 +230,8 @@
     wrap.appendChild(line);
 
     const chain = [];
-    for (let node = data.el; node && node !== document.documentElement; node = node.parentElement) {
+    const rootEl = data.el.ownerDocument.documentElement;
+    for (let node = data.el; node && node !== rootEl; node = node.parentElement) {
       chain.unshift(node);
     }
     const shown = chain.slice(-4);
@@ -422,7 +423,8 @@
      * @param {object|null} data DT.styles.read() result, or null with nothing
      *   under the cursor
      * @param {{measurement:object|null, pair:object|null, state:string,
-     *          measuring:boolean}} opts
+     *          measuring:boolean, mode?:'loading'|'interact'|null,
+     *          notice?:string|null}} opts
      */
     render(data, opts) {
       const body = overlay.body;
@@ -430,11 +432,22 @@
       syncChrome();
       setStatus(opts);
 
+      // Why device sizes are missing, when they are. Said once, at the top.
+      if (opts.notice) body.appendChild(el('p', 'notice', opts.notice));
+
       if (!prefs.get('onboarded')) body.appendChild(guide(opts.state, !!data));
 
       if (!data) {
         if (prefs.get('onboarded')) {
-          body.appendChild(el('p', 'empty', 'Hover anything on the page to read its styles.'));
+          body.appendChild(
+            el(
+              'p',
+              'empty',
+              opts.mode === 'interact'
+                ? 'The page has your clicks. Switch back to Inspect to read styles.'
+                : 'Hover anything on the page to read its styles.'
+            )
+          );
         }
         return;
       }
@@ -442,7 +455,9 @@
       const fmt = (px) => units.format(px, data.typography.size);
       const ctx = { fmt, copyable };
 
-      body.appendChild(selection(data, opts.state, handlers.onSelect));
+      // While measuring, the A and B rows under the distance say what is
+      // selected, so the selection block would only say it twice.
+      if (!opts.measurement) body.appendChild(selection(data, opts.state, handlers.onSelect));
       body.appendChild(heroTiles(data, fmt, opts.measurement));
 
       if (opts.measurement) {
@@ -569,21 +584,25 @@
   }
 
   /** What the next click does. Lives in the footer, where it never moves. */
-  function setStatus({ state, measuring }) {
+  function setStatus({ state, measuring, mode }) {
     const { dot, text, clear } = nodes;
-    const key = state === 'lockedA' && measuring ? 'measuring' : state;
+    const key = mode || (state === 'lockedA' && measuring ? 'measuring' : state);
     dot.className = `status-dot is-${key}`;
     text.textContent = '';
     if (key === 'lockedA') {
       text.append('Hold ', el('kbd', null, MOD_KEY), ' and hover another element to measure.');
     } else if (key === 'measuring') {
       text.append('Click to keep this measurement.');
+    } else if (key === 'loading') {
+      text.append('Loading the page into the stage.');
+    } else if (key === 'interact') {
+      text.append('Interact mode. The page gets your clicks.');
     } else if (key === 'lockedAB') {
       text.append('Measurement kept. Click any element to start again.');
     } else {
       text.append('Click an element to lock it.');
     }
-    clear.hidden = state === 'armed';
+    clear.hidden = state === 'armed' || !!mode;
   }
 
   /**
@@ -653,44 +672,20 @@
       head.appendChild(el('span', 'pair-name', shortIdentity(data.identity)));
       col.appendChild(head);
 
-      // Same rule as the hero tiles: text gets its type spec, anything else
-      // gets its box, because that is what you are comparing in each case.
+      // Same rule as the hero values: text is identified by its type, anything
+      // else by its box. One fact, on the same line as the name: the full
+      // spec of either element is a click away, and stating it here as well
+      // made the measurement the longest thing on the panel.
       const fmt = (px) => units.format(px, data.typography.size);
-      const facts = data.typography.hasText
-        ? [
-            ['Size', fmt(data.typography.size)],
-            ['Weight', `${data.typography.weight} ${data.typography.weightName}`],
-            [
-              'Line',
-              data.typography.lineHeightPx ? fmt(data.typography.lineHeightPx) : 'auto',
-            ],
-          ]
-        : [
-            ['W', fmt(data.box.width)],
-            ['H', fmt(data.box.height)],
-            ...(data.layout.isContainer ? [['Gap', fmt(data.layout.rowGap)]] : []),
-          ];
-
-      // Stacked full-width, so the facts run inline rather than as one
-      // key-value row each: a card-wide row with two words in it is mostly
-      // empty space, and stacking cost us the vertical room to waste.
-      const list = el('div', 'pair-facts');
-      for (const [label, value] of facts) {
-        const fact = el('span', 'pair-fact');
-        fact.appendChild(el('span', 'pair-key', label));
-        const val = el('span', 'pair-val', value);
-        copyable(val, value);
-        fact.appendChild(val);
-        list.appendChild(fact);
-      }
-
-      if (data.media) {
-        const fact = el('span', 'pair-fact');
-        fact.appendChild(el('span', 'pair-key', 'Media'));
-        fact.appendChild(el('span', 'pair-val', data.media.format || data.media.kind));
-        list.appendChild(fact);
-      }
-      col.appendChild(list);
+      const plain = (px) => String(Math.round(px * 100) / 100);
+      const summary = data.typography.hasText
+        ? `${fmt(data.typography.size)} · ${data.typography.weight}`
+        : units.mode === 'px'
+          ? `${plain(data.box.width)} × ${plain(data.box.height)}`
+          : `${fmt(data.box.width)} × ${fmt(data.box.height)}`;
+      const sum = el('span', 'pair-sum', summary);
+      copyable(sum, summary);
+      head.appendChild(sum);
 
       wrap.appendChild(col);
     }
