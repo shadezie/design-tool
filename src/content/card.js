@@ -315,17 +315,15 @@
   function buildHero(tiles, isMeasure) {
     const wrap = el('div', `hero is-${tiles.length}up${isMeasure ? ' is-measure' : ''}`);
     for (const [label, value, sub, subClass] of tiles) {
-      // The unit moves into the label so the number itself gets the width. It
-      // is the same unit for every tile anyway, and a truncated "123.…" is
-      // worse than useless during QA.
+      // The unit rides after the number, small and dim, so the figure itself
+      // is what the eye lands on.
       const [number, unit] = splitUnit(value);
       const tile = el('div', 'tile');
 
-      const caption = el('span', 'tile-label', label);
-      if (unit) caption.appendChild(el('span', 'tile-unit', unit));
-      tile.appendChild(caption);
+      tile.appendChild(el('span', 'tile-label', label));
 
       const line = el('span', 'tile-value', number);
+      if (unit) line.appendChild(el('span', 'tile-unit', unit));
       if (sub) line.appendChild(el('span', `tile-sub${subClass ? ` ${subClass}` : ''}`, sub));
       tile.appendChild(line);
 

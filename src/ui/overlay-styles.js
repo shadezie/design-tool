@@ -62,51 +62,47 @@
   --measure-guide: rgba(224, 21, 99, 0.6);
   --halo: rgba(255, 255, 255, 0.82);
 
-  /* ---- Panel, dark: "Obsidian". ----
-     Three grounds instead of two, so raised things (tiles, chips) and sunken
-     things (the status footer) are different from the panel and from each
-     other. Three text tiers, so "dimmed on purpose" has its own token rather
-     than a one-off grey. */
-  --bg: #0d0e10;
-  --bg-raised: #181a1e;
-  --bg-sunken: #070809;
-  --line: rgba(255, 255, 255, 0.1);
-  --line-strong: rgba(255, 255, 255, 0.2);
-  --text: #f4f5f6;
-  --text-2: #a6acb5;
-  --text-3: #747a84;
-  --hover: rgba(255, 255, 255, 0.08);
+  /* ---- Panel, dark: "Ink". ----
+     Graphite rather than black. One ground for the whole panel, a slightly
+     lighter well for controls and a darker one kept for emphasis. Structure
+     comes from hairlines and type weight, not from boxes. */
+  --bg: #151618;
+  --bg-raised: #222428;
+  --bg-sunken: #0f1012;
+  --seg: #34373d;
+  --seg-shadow: none;
+  --line: rgba(255, 255, 255, 0.075);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #edeef0;
+  --text-2: #9a9fa7;
+  --text-3: #6d727a;
+  --hover: rgba(255, 255, 255, 0.06);
 
-  /* Brand blue lifts on dark: #2A51FD does not hold against near-black. */
+  /* Brand blue lifts on dark: #2A51FD does not hold against graphite. */
   --accent: #3b63ff;
   --on-accent: #ffffff;
   --accent-text: #9db2ff;
-  --accent-soft: rgba(59, 99, 255, 0.2);
+  --accent-soft: rgba(76, 111, 255, 0.26);
 
   /* Status colours, for what a QA pass is actually looking for: a value that
      is right, one that is a guess, one that is a bug. They never decorate. */
   --ok: #3dd68c;
   --on-ok: #04130b;
-  --ok-soft: rgba(61, 214, 140, 0.14);
   --warn: #ffb224;
-  --warn-soft: rgba(255, 178, 36, 0.14);
   --danger: #ff6369;
   --on-danger: #1c0406;
-  --danger-soft: rgba(255, 99, 105, 0.15);
 
   /* The selector line reads like code, so the id gets a syntax colour. */
   --syntax-id: #e5a23a;
   /* B on the panel. On the page it is always --hl-b. */
   --mark-b: #ffb224;
 
-  /* Box model, in the order DevTools taught everyone: margin orange, border
-     yellow, padding green, content blue. */
-  --box-margin: rgba(255, 159, 10, 0.13);
-  --box-border: rgba(242, 212, 92, 0.11);
-  --box-padding: rgba(61, 214, 140, 0.12);
-  --box-content: rgba(59, 99, 255, 0.28);
+  /* Box model: one quiet tint for the rings, the accent for the content. It
+     was four colours, which was the loudest thing on the panel. */
+  --box-ring: rgba(255, 255, 255, 0.04);
+  --box-ring-line: transparent;
 
-  --shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 0 48px rgba(0, 0, 0, 0.45);
+  --shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), -12px 0 32px rgba(0, 0, 0, 0.25);
 
   /* The built-in easings are too soft to read as intentional at these
      durations. Only press feedback and hover use them: the panel's contents
@@ -120,44 +116,40 @@
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* ---- Panel, light: "Paper". ----
-   Warm neutrals, because the average website is white and cool grey and a
-   cool panel disappears into it. Raised surfaces are pure white on the paper
-   ground, which is what makes a tile read as lifted without a shadow. */
+/* ---- Panel, light: "Quiet". ----
+   White, hairlines, no containers. It separates from a white website by its
+   edge and shadow, not by a tinted ground. */
 .layer[data-theme="light"] {
-  --bg: #f8f8f5;
-  --bg-raised: #ffffff;
-  --bg-sunken: #eeeeea;
-  --line: rgba(26, 26, 23, 0.11);
-  --line-strong: rgba(26, 26, 23, 0.22);
-  --text: #1a1a17;
-  --text-2: #5c5c55;
-  --text-3: #85857d;
-  --hover: rgba(26, 26, 23, 0.06);
+  --bg: #ffffff;
+  --bg-raised: #f3f3f4;
+  --bg-sunken: #f7f7f8;
+  --seg: #ffffff;
+  --seg-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --line: #ebebed;
+  --line-strong: #d9d9dd;
+  --text: #111113;
+  --text-2: #68686d;
+  --text-3: #86868c;
+  --hover: rgba(17, 17, 19, 0.05);
 
   --accent: #2a51fd;
   --on-accent: #ffffff;
   --accent-text: #2442c9;
-  --accent-soft: rgba(42, 81, 253, 0.1);
+  --accent-soft: #eef2ff;
 
   --ok: #0b7a4b;
   --on-ok: #ffffff;
-  --ok-soft: rgba(11, 122, 75, 0.11);
   --warn: #8f5400;
-  --warn-soft: rgba(168, 100, 0, 0.13);
   --danger: #c8253a;
   --on-danger: #ffffff;
-  --danger-soft: rgba(200, 37, 58, 0.1);
 
   --syntax-id: #8f5400;
   --mark-b: #b86a00;
 
-  --box-margin: rgba(214, 122, 0, 0.15);
-  --box-border: rgba(176, 148, 20, 0.15);
-  --box-padding: rgba(11, 122, 75, 0.13);
-  --box-content: rgba(42, 81, 253, 0.13);
+  --box-ring: transparent;
+  --box-ring-line: #ebebed;
 
-  --shadow: 0 0 0 1px rgba(26, 26, 23, 0.06), 0 0 40px rgba(26, 26, 23, 0.14);
+  --shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), -12px 0 32px rgba(0, 0, 0, 0.05);
 }
 
 /* ---------- element highlights ---------- */
@@ -262,8 +254,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 10px 10px 14px;
-  border-bottom: 1px solid var(--line);
+  height: 48px;
+  padding: 0 8px 0 14px;
 }
 
 .brand {
@@ -331,19 +323,18 @@
   flex: none;
   padding: 2px;
   margin-right: 2px;
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--bg-raised);
-  border: 1px solid var(--line);
 }
 .units button {
   min-width: 30px;
   height: 24px;
-  padding: 0 7px;
+  padding: 0 8px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 6px;
   background: none;
   color: var(--text-2);
-  font: 500 11px/1 var(--mono);
+  font: 500 11.5px/1 var(--sans);
   cursor: pointer;
   transition: background var(--press) ease, color var(--press) ease,
     transform var(--press) var(--ease-out);
@@ -352,24 +343,27 @@
   .units button:hover { color: var(--text); }
 }
 .units button:active { transform: scale(0.97); }
-.units button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+/* The active unit is a raised chip, not an accent fill: it is a setting, not
+   a call to action. */
+.units button[aria-pressed="true"] {
+  background: var(--seg);
+  color: var(--text);
+  box-shadow: var(--seg-shadow);
+}
 
 /* ---------- first-run guide ---------- */
 
 .guide {
   position: relative;
-  padding: 14px 14px 16px;
+  padding: 4px 14px 16px;
   border-bottom: 1px solid var(--line);
-  background: var(--accent-soft);
 }
 .guide-title {
   margin-bottom: 10px;
-  color: var(--accent-text);
-  font: 500 10px/1.4 var(--mono);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: var(--text);
+  font: 600 12px/1.4 var(--sans);
 }
-.guide .icon-btn { position: absolute; top: 6px; right: 8px; }
+.guide .icon-btn { position: absolute; top: -2px; right: 8px; }
 .guide ol { list-style: none; display: grid; gap: 8px; }
 .guide li {
   display: grid;
@@ -383,19 +377,15 @@
 .guide-n {
   width: 20px;
   height: 20px;
-  border: 1px solid var(--line-strong);
   border-radius: 50%;
+  background: var(--bg-raised);
   color: var(--text-2);
-  font: 500 10.5px/18px var(--mono);
+  font: 500 11px/20px var(--sans);
   text-align: center;
 }
 /* The step you are on. */
 .guide li.is-now { color: var(--text); }
-.guide li.is-now .guide-n {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--on-accent);
-}
+.guide li.is-now .guide-n { background: var(--accent); color: var(--on-accent); }
 
 .empty {
   padding: 28px 14px;
@@ -408,7 +398,7 @@
 .sel {
   display: grid;
   gap: 6px;
-  padding: 12px 14px;
+  padding: 4px 14px 14px;
   border-bottom: 1px solid var(--line);
 }
 .sel-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -430,7 +420,7 @@
 .identity {
   flex: 1;
   min-width: 0;
-  font: 500 12.5px/1.4 var(--mono);
+  font: 500 13px/1.4 var(--mono);
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -449,7 +439,7 @@
   gap: 2px;
   margin-left: -5px;
   color: var(--text-3);
-  font: 400 11px/1.4 var(--mono);
+  font: 400 11.5px/1.4 var(--sans);
 }
 .crumb {
   max-width: 120px;
@@ -472,10 +462,13 @@
 
 /* ---------- hero values ---------- */
 
+/* The numbers being checked, with nothing around them: a quiet label and a
+   large figure. They were bordered tiles, which made three numbers look like
+   three buttons. */
 .hero {
   display: grid;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: 12px 8px;
+  padding: 14px;
   border-bottom: 1px solid var(--line);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -485,22 +478,17 @@
 .hero.is-4up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .tile {
-  padding: 9px 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg-raised);
-  overflow: hidden;
+  min-width: 0;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border-radius: 6px;
 }
-
-.tile-unit { margin-left: 4px; color: var(--text-3); }
 
 .tile-label {
   display: block;
-  margin-bottom: 3px;
+  margin-bottom: 1px;
   color: var(--text-2);
-  font: 500 10px/1.4 var(--mono);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font: 400 11.5px/1.4 var(--sans);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -509,30 +497,33 @@
 .tile-value {
   display: block;
   color: var(--text);
-  font: 500 20px/1.2 var(--mono);
+  font: 500 22px/1.2 var(--sans);
+  font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 /* The distance is the answer, so it is the biggest thing on the panel. */
-.hero.is-measure.is-1up .tile-value { font-size: 28px; }
-.hero.is-measure .tile { border-color: var(--measure); }
+.hero.is-measure.is-1up .tile-value { font-size: 34px; letter-spacing: -0.03em; }
 
+.tile-unit,
 .tile-sub {
-  margin-left: 5px;
-  color: var(--text-2);
-  font: 400 11px/1.2 var(--mono);
+  margin-left: 4px;
+  color: var(--text-3);
+  font: 400 11.5px/1.2 var(--sans);
   letter-spacing: 0;
 }
+.tile-sub { color: var(--text-2); }
 
 /* A gap that lands exactly on a spacing token is the good news a QA pass is
    looking for, so it gets the status colour for "right". */
 .tile-sub.is-token {
   display: block;
   margin-left: 0;
-  margin-top: 3px;
+  margin-top: 2px;
   color: var(--ok);
+  font: 500 12px/1.4 var(--mono);
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -550,14 +541,12 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 36px;
+  min-height: 40px;
   padding: 0 14px;
   border: 0;
   background: none;
-  color: var(--text-2);
-  font: 500 10px/1.4 var(--mono);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: var(--text);
+  font: 600 12px/1.4 var(--sans);
   text-align: left;
   cursor: pointer;
 }
@@ -566,6 +555,7 @@
   width: 6px;
   height: 6px;
   margin-right: 3px;
+  color: var(--text-3);
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   transform: rotate(45deg) translate(-1px, -1px);
@@ -573,7 +563,7 @@
 }
 .sec-title[aria-expanded="false"]::after { transform: rotate(-45deg) translate(-1px, -1px); }
 @media (hover: hover) and (pointer: fine) {
-  .sec-title:hover { color: var(--text); background: var(--hover); }
+  .sec-title:hover { background: var(--hover); }
 }
 
 .row {
@@ -589,10 +579,11 @@
    a number and has to align with the number above it. */
 .row dt {
   color: var(--text-2);
-  font: 400 12px/1.7 var(--sans);
+  font: 400 12.5px/1.75 var(--sans);
 }
 .row dd {
-  font: 450 12px/1.7 var(--mono);
+  font: 500 12.5px/1.75 var(--sans);
+  font-variant-numeric: tabular-nums;
   text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -625,7 +616,7 @@
   transition-duration: 0ms;
 }
 
-.is-hex { color: var(--accent-text); }
+.is-hex { font-family: var(--mono); font-size: 12px; }
 
 /* Colour is the one value read as a thing rather than a number, so the chip
    is big enough to actually judge. */
@@ -648,28 +639,28 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
+  min-height: 46px;
   padding: 8px 10px 8px 14px;
-  background: var(--bg-sunken);
+  background: var(--bg);
   border-top: 1px solid var(--line);
 }
 
 .status-text {
   flex: 1;
   min-width: 0;
-  color: var(--text);
+  color: var(--text-2);
   font: 400 12px/1.4 var(--sans);
 }
 
 /* The dot carries the state in the same colours as the on-page highlights. */
 .status-dot {
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--text-3);
 }
-.status-dot.is-lockedA { background: var(--hl-a); box-shadow: 0 0 0 1px var(--line-strong); }
+.status-dot.is-lockedA { background: var(--accent); }
 .status-dot.is-measuring { background: var(--measure); }
 .status-dot.is-lockedAB { background: var(--mark-b); }
 
@@ -677,8 +668,8 @@
   flex: none;
   height: 28px;
   padding: 0 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
+  border: 0;
+  border-radius: 7px;
   background: var(--bg-raised);
   color: var(--text);
   font: 500 11.5px/1 var(--sans);
@@ -693,7 +684,7 @@
 kbd {
   display: inline-block;
   padding: 1px 5px;
-  border: 1px solid var(--line-strong);
+  border: 0;
   border-radius: 4px;
   background: var(--bg-raised);
   color: var(--text);
@@ -718,25 +709,20 @@ kbd {
 
 .ring {
   position: relative;
-  padding: 18px 3px 3px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 6px;
+  padding: 22px 4px 4px;
+  border-radius: 7px;
+  background: var(--box-ring);
+  box-shadow: inset 0 0 0 1px var(--box-ring-line);
   text-align: center;
 }
 
 .ring-label {
   position: absolute;
-  top: 3px;
-  left: 7px;
-  color: var(--text-2);
-  font: 500 10px/1.3 var(--mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  top: 6px;
+  left: 9px;
+  color: var(--text-3);
+  font: 400 11px/1.3 var(--sans);
 }
-
-.ring-margin { background: var(--box-margin); }
-.ring-border { background: var(--box-border); }
-.ring-padding { background: var(--box-padding); }
 
 .ring-mid {
   display: flex;
@@ -747,21 +733,20 @@ kbd {
 
 .sv {
   display: inline-block;
-  min-width: 24px;
+  min-width: 26px;
   padding: 3px 3px;
-  font: 400 11px/1.5 var(--mono);
+  font: 400 11.5px/1.5 var(--sans);
+  font-variant-numeric: tabular-nums;
   color: var(--text);
 }
 .sv.is-zero { color: var(--text-3); }
 .sv.is-side-l, .sv.is-side-r { flex: none; }
 
 .content-box {
-  padding: 5px 4px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  /* On the panel ground rather than on three stacked tints, which turned the
-     blue to olive. */
-  background: linear-gradient(var(--box-content), var(--box-content)), var(--bg);
+  padding: 6px 4px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 .dim {
@@ -769,20 +754,21 @@ kbd {
   align-items: baseline;
   justify-content: center;
   gap: 5px;
-  padding: 2px 3px;
-  font: 500 12px/1.5 var(--mono);
+  padding: 1px 3px;
+  font: 500 12px/1.5 var(--sans);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.dim-axis { color: var(--text-2); font-size: 10px; }
+.dim-axis { font-size: 11px; font-weight: 400; opacity: 0.7; }
 
 .sbox-note {
   margin-top: 8px;
   display: grid;
   grid-template-columns: 104px 1fr;
-  gap: 2px 10px;
+  gap: 0 10px;
 }
-.sbox-note dt { color: var(--text-2); font: 400 12px/1.7 var(--sans); }
-.sbox-note dd { font: 450 12px/1.7 var(--mono); text-align: right; }
+.sbox-note dt { color: var(--text-2); font: 400 12.5px/1.75 var(--sans); }
+.sbox-note dd { font: 500 12.5px/1.75 var(--sans); font-variant-numeric: tabular-nums; text-align: right; }
 
 /* ---------- design tokens ---------- */
 
@@ -814,7 +800,7 @@ kbd {
 
 .token-raw {
   color: var(--text-2);
-  font: 400 11px/1.5 var(--mono);
+  font: 400 11.5px/1.5 var(--mono);
 }
 
 /* ---------- media ---------- */
@@ -836,8 +822,8 @@ kbd {
   border-radius: 4px;
   background: var(--accent);
   color: var(--on-accent);
-  font: 500 10px/1.5 var(--mono);
-  letter-spacing: 0.06em;
+  font: 500 10.5px/1.5 var(--sans);
+  letter-spacing: 0.02em;
 }
 
 /* ---------- the two measured elements ---------- */
@@ -848,38 +834,31 @@ kbd {
 .pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
+  gap: 10px;
 }
 
-.pair-col {
-  min-width: 0;
-  padding: 9px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg-raised);
-}
+.pair-col { min-width: 0; }
 
 .pair-head {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-bottom: 5px;
+  gap: 8px;
   min-width: 0;
 }
 
 .pair-name {
   min-width: 0;
-  color: var(--text-2);
-  font: 400 11px/1.3 var(--mono);
+  color: var(--text);
+  font: 400 12px/1.4 var(--mono);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pair-facts { display: flex; flex-wrap: wrap; gap: 2px 14px; }
+.pair-facts { display: flex; flex-wrap: wrap; gap: 0 14px; margin: 2px 0 0 24px; }
 .pair-fact { display: inline-flex; align-items: baseline; gap: 5px; }
-.pair-key { color: var(--text-2); font: 400 11px/1.7 var(--mono); }
-.pair-val { color: var(--text); font: 500 12px/1.7 var(--mono); white-space: nowrap; }
+.pair-key { color: var(--text-2); font: 400 11.5px/1.7 var(--sans); }
+.pair-val { color: var(--text); font: 500 12px/1.7 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .mlead-kind {
   margin: 0 0 8px;
