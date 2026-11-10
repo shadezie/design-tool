@@ -13,10 +13,10 @@ submitted, so the next release does not have to reinvent it.
 Design Tool
 ```
 
-**Short description** (132 char limit, this is 118)
+**Short description** (132 char limit, this is 121)
 
 ```
-Design QA for any website. Type styles, spacing, design tokens and media, read the way a designer thinks about them.
+Design QA for any website. Type styles, spacing and measurement in a side panel, with mobile, tablet and desktop sizes.
 ```
 
 **Category**: Developer Tools
@@ -32,22 +32,30 @@ styles are three hundred properties in alphabetical order, and measuring the
 space between two things means eyeballing an overlay. None of that maps to how
 a designer thinks.
 
+Turn it on and the page moves onto a stage beside a side panel. Pick mobile,
+tablet, desktop or large desktop, or type any width and height, and the page
+responds at that size.
+
 Hover an element and read its type spec: size, weight and line height up front,
-then family, letter spacing, transform and colour. Click two elements and the
-distance between them is drawn on the page with dimension lines. Select a
+then family, letter spacing, transform and colour. Click an element, hold Cmd
+or Ctrl over another, and the distance between them is drawn on the page with
+dimension lines. Select a
 container and see margin, border and padding as nested rings, with the flex or
 grid gap stated right next to the padding.
 
 WHAT YOU GET
 
+• A stage with device sizes: mobile, tablet, desktop, large desktop, or custom
+• A side panel that never covers the page it is measuring
 • Type styles at a glance, in designer vocabulary rather than CSS
-• Measure between any two elements, drawn on the page, with the spec of both
+• Measure between any two elements, drawn on the page, only when you ask
 • Design token names instead of raw values, where the site defines them
 • Media: format actually served, aspect ratio, and whether the asset fits
 • A spacing box: margin, border, padding, content, plus gap
 • px, rem and em, converted everywhere at once
 • Click any value to copy it
-• Light and dark, and a panel you can drag anywhere and resize
+• Inspect and Interact modes, so you can open a menu and then measure it
+• Light and dark
 
 DESIGN TOKENS
 
@@ -70,9 +78,12 @@ BUILT FOR REAL PAGES
 
 Most card grids stretch an invisible click target over the whole card, which
 means a plain hover lands on that instead of the heading you were pointing at.
-Design Tool skips overlays that paint nothing, and holding Cmd or Ctrl reaches
-the most specific element under the cursor, the same way you select through a
-group in Figma.
+Design Tool skips overlays that paint nothing, and holding Cmd or Ctrl before
+you select reaches the most specific element under the cursor, the same way
+you select through a group in Figma.
+
+Some sites do not allow themselves to be framed. There the tool says so and
+inspects the page in place, without device sizes.
 
 rem is resolved against the page's real root font size, not an assumed 16px, so
 sites that set a 62.5% root report correctly rather than confidently wrong.

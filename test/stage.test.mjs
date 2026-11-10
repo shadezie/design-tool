@@ -84,6 +84,10 @@ const ask = (kind, arg) =>
           if (kind === 'value') return root.querySelector(arg)?.value;
           if (kind === 'selected') return root.querySelector('.size-list')?.selectedOptions[0]?.textContent;
           if (kind === 'options') return [...(root.querySelector('.size-list')?.options || [])].map((o) => o.textContent);
+          if (kind === 'go') {
+            frame.contentWindow.location.href = arg;
+            return true;
+          }
           if (kind === 'frame') {
             if (!frame?.contentWindow) return null;
             const win = frame.contentWindow;
@@ -236,6 +240,15 @@ check('and nothing is selected by it', (await ask('text')).includes('Interact mo
 await press('.mode-inspect');
 await glide(await point('#hero-title', 120, 24));
 check('back in Inspect, hovering reads styles again', (await ask('text')).includes('h1#hero-title'));
+
+// Following a link in Interact loads a new document into the frame. The
+// inspector has to move to it, or it would be reading a page that is gone.
+await ask('go', '/second');
+await page.waitForTimeout(1200);
+check('the frame navigated', (await ask('frame')).path.endsWith('/second'), (await ask('frame')).path);
+await glide(await point('#cta', 20, 10));
+check('inspection follows the frame to the new page', (await ask('text')).includes('a#cta'), (await ask('text')).slice(0, 60));
+check('the tab itself stays where it was', page.url() === `${ORIGIN}/`, page.url());
 
 // ---- closing --------------------------------------------------------------
 await toggle(false);
