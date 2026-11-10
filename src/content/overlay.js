@@ -4,7 +4,7 @@
  * Everything lives in a closed shadow root so the host page's CSS cannot
  * restyle the tool and the tool's CSS cannot leak into the page being QA'd.
  * The layer is pointer-events: none, so the page still receives hover; only
- * the card opts back in.
+ * the panel opts back in.
  */
 (() => {
   const DT = (window.__designtool = window.__designtool || {});
@@ -16,9 +16,10 @@
   let host = null;
   let root = null;
   let layer = null;
-  let card = null;
-  let resizer = null;
-  let sizeWatcher = null;
+  let panel = null;
+  let head = null;
+  let body = null;
+  let foot = null;
   let loadedFonts = [];
   const highlights = new Map();
   let measureNodes = [];
@@ -41,16 +42,19 @@
   }
 
   const overlay = {
-    get card() {
-      return card;
+    /** The docked panel, and its three regions. */
+    get panel() {
+      return panel;
     },
-
-    get resizer() {
-      return resizer;
+    get head() {
+      return head;
     },
-
-    /** Set while the user is dragging the card, so hover tracking holds still. */
-    dragging: false,
+    get body() {
+      return body;
+    },
+    get foot() {
+      return foot;
+    },
 
     get shadowRoot() {
       return root;
@@ -62,7 +66,7 @@
 
     /**
      * True when an event came from our own UI. Events crossing a closed shadow
-     * root are retargeted to the host, so this one check covers the whole card.
+     * root are retargeted to the host, so this one check covers the whole panel.
      */
     ownsEvent(event) {
       return host !== null && event.target === host;
@@ -86,46 +90,81 @@
       layer.style.overflow = 'hidden';
       root.appendChild(layer);
 
-      card = el('div', 'card');
-      card.style.display = 'none';
-      const size = prefs.get('size');
-      if (size) {
-        card.style.width = `${size.width}px`;
-        card.style.height = `${size.height}px`;
-      }
-      layer.appendChild(card);
-
-      // The resize handle writes inline width and height on the card. That
-      // inline style is the signal that a size was chosen deliberately, rather
-      // than the card just growing with its content.
-      if (typeof ResizeObserver === 'function') {
-        sizeWatcher = new ResizeObserver(() => {
-          if (!card?.style.width) return;
-          prefs.set('size', {
-            width: Math.round(parseFloat(card.style.width)),
-            height: Math.round(parseFloat(card.style.height)),
-          });
-        });
-        sizeWatcher.observe(card);
-      }
+      panel = el('aside', 'panel');
+      panel.setAttribute('aria-label', 'Design Tool');
+      head = el('header', 'panel-head');
+      body = el('div', 'panel-body');
+      foot = el('footer', 'panel-foot');
+      panel.append(head, body, foot);
+      layer.appendChild(panel);
 
       overlay.setTheme(prefs.get('theme'));
+      overlay.setSide(prefs.get('side'));
       loadFonts();
-
-      resizer = el('div', 'resizer');
-      resizer.style.display = 'none';
-      resizer.title = 'Drag to resize';
-      layer.appendChild(resizer);
 
       makeHighlight('hover');
       makeHighlight('a');
       makeHighlight('b');
 
       document.documentElement.appendChild(host);
+      overlay.motion(panel, 'enter');
     },
 
     setTheme(theme) {
       layer?.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+    },
+
+    /** @param {boolean} [animate] true when the user asked for the move */
+    setSide(side, animate) {
+      if (!panel) return;
+      const before = animate ? panel.getBoundingClientRect().left : 0;
+      panel.setAttribute('data-side', side === 'left' ? 'left' : 'right');
+      if (animate) overlay.motion(panel, 'flip', { dx: before - panel.getBoundingClientRect().left });
+    },
+
+    /**
+     * Motion, in one place.
+     *
+     * What animates is decided by how often it happens. Opening, closing,
+     * flipping sides and unfolding a section are occasional, so they move.
+     * Hover highlights, dimension lines and the panel's contents change many
+     * times a second while the mouse moves, so they never do.
+     *
+     * Only transform and opacity, through the Web Animations API so nothing
+     * lingers in the stylesheet to fire again when the body is rebuilt. With
+     * reduced motion the movement goes and a short fade stays.
+     *
+     * @param {'enter'|'exit'|'flip'|'unfold'} kind
+     * @param {{dx?: number}} [opts] flip: how far the panel just jumped
+     */
+    motion(node, kind, opts = {}) {
+      if (!node?.animate || !layer) return null;
+      const css = getComputedStyle(layer);
+      const curve = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      const fromEdge = panel?.getAttribute('data-side') === 'left' ? '-100%' : '100%';
+
+      const plans = {
+        // A drawer coming out of the edge it is docked to.
+        enter: [[{ transform: `translateX(${fromEdge})` }, { transform: 'none' }], 220, curve('--ease-drawer', 'ease-out')],
+        // Leaves the way it came, quicker: the user has already moved on.
+        exit: [[{ transform: 'none' }, { transform: `translateX(${fromEdge})` }], 160, curve('--ease-out', 'ease-out')],
+        // Already at the other edge; play back the distance it jumped.
+        flip: [[{ transform: `translateX(${opts.dx || 0}px)` }, { transform: 'none' }], 220, curve('--ease-in-out', 'ease-in-out')],
+        unfold: [[{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], 160, curve('--ease-out', 'ease-out')],
+      };
+      const fades = {
+        enter: [{ opacity: 0 }, { opacity: 1 }],
+        exit: [{ opacity: 1 }, { opacity: 0 }],
+        flip: [{ opacity: 0 }, { opacity: 1 }],
+        unfold: [{ opacity: 0 }, { opacity: 1 }],
+      };
+      const [frames, duration, easing] = plans[kind];
+      try {
+        return node.animate(reduce ? fades[kind] : frames, { duration: reduce ? 120 : duration, easing: reduce ? 'ease' : easing });
+      } catch {
+        return null;
+      }
     },
 
     unmount() {
@@ -137,11 +176,20 @@
         }
       }
       loadedFonts = [];
-      sizeWatcher?.disconnect();
-      sizeWatcher = null;
-      overlay.dragging = false;
-      host?.remove();
-      host = root = layer = card = resizer = null;
+      // The marks on the page go at once. The panel slides back into its edge,
+      // on a host this module has already let go of, so arming again mid-exit
+      // just builds a fresh one.
+      const leaving = host;
+      for (const { box } of highlights.values()) box.remove();
+      for (const node of measureNodes) node.remove();
+      const exit = overlay.motion(panel, 'exit');
+      if (exit && leaving) {
+        panel.style.pointerEvents = 'none';
+        exit.finished.catch(() => {}).then(() => leaving.remove());
+      } else {
+        leaving?.remove();
+      }
+      host = root = layer = panel = head = body = foot = null;
       highlights.clear();
       measureNodes = [];
     },
@@ -173,7 +221,7 @@
       tag.textContent = label || '';
       tag.style.display = label ? 'block' : 'none';
       // Flip the tag inside the element when it would sit above the viewport.
-      tag.style.top = rect.top < 24 ? '2px' : '-22px';
+      tag.style.top = rect.top < 26 ? '2px' : '-23px';
     },
 
     clearHighlights() {
@@ -191,24 +239,6 @@
         addLine(segment, false);
         addLabel(segment, formatValue(segment.value));
       }
-    },
-
-    setCardPosition(left, top) {
-      card.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
-      // Keep the card inside the viewport from wherever its top edge sits.
-      // Pinned low on a page it would otherwise run off the bottom, taking its
-      // resize corner out of reach.
-      card.style.maxHeight = `${Math.max(160, Math.round(window.innerHeight - top - 10))}px`;
-
-      const rect = card.getBoundingClientRect();
-      resizer.style.transform = `translate(${Math.round(rect.right - 16)}px, ${Math.round(
-        rect.bottom - 16
-      )}px)`;
-    },
-
-    showCard(show) {
-      card.style.display = show ? 'block' : 'none';
-      resizer.style.display = show ? 'block' : 'none';
     },
   };
 

@@ -1,5 +1,5 @@
 /**
- * Render card states against test/demo.html for review.
+ * Render panel states against test/demo.html for review.
  *
  *   npm run shots     # writes test/shots/
  *
@@ -39,9 +39,42 @@ const at = async (sel, dx = 40, dy = 20) => {
   const b = await n.boundingBox();
   return [b.x + dx, b.y + dy];
 };
-// card occupies the top-right
-const card = { x: 1280 - 330 - 14 - 6, y: 8, width: 348, height: 780 };
-const shot = (name) => page.screenshot({ path: `${OUT}/${name}.png`, clip: card });
+// The panel is docked to the right edge at full height.
+const panel = { x: 1280 - 360 - 12, y: 0, width: 372, height: 860 };
+const shot = async (name) => {
+  await page.screenshot({ path: `${OUT}/${name}.png`, clip: panel });
+  await page.screenshot({ path: `${OUT}/${name}-page.png` });
+};
+
+/** Click a panel control. The shadow root is closed, so go through the isolated world. */
+const pressPanel = (selector) =>
+  sw.evaluate(async (selector) => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      world: 'ISOLATED',
+      args: [selector],
+      func: (selector) => window.__designtool.overlay.panel.querySelector(selector)?.click(),
+    });
+  }, selector);
+
+/** Lock A, then hold the modifier over B, which is what shows a measurement. */
+async function measure(selA, selB) {
+  const [ax, ay] = await at(selA, 80, 6);
+  await glide(ax, ay);
+  await page.mouse.click(ax, ay);
+  await page.waitForTimeout(250);
+  await page.keyboard.down('Control');
+  await glide(...(await at(selB, 80, 6)));
+}
+async function release() {
+  await page.keyboard.up('Control');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+}
+
+// 0. first frame, before anything is hovered
+await shot('0-first-run');
 
 // 1. tokens on a heading
 await glide(...(await at('#hero-title', 120, 24)));
@@ -52,26 +85,16 @@ await glide(...(await at('#cta', 60, 22)));
 await shot('2-tokens-button');
 
 // 3. measurement between two cards
-const [ax, ay] = await at('#card-a', 80, 6);
-await glide(ax, ay);
-await page.mouse.click(ax, ay);
-await page.waitForTimeout(250);
-await glide(...(await at('#card-b', 80, 6)));
+await measure('#card-a', '#card-b');
 await shot('3-measure-boxes');
+await release();
 
 // 4. measurement heading vs card (text spec vs box)
-await page.keyboard.press('Escape');
-await page.waitForTimeout(200);
-const [tx, ty] = await at('#hero-title', 120, 24);
-await glide(tx, ty);
-await page.mouse.click(tx, ty);
-await page.waitForTimeout(250);
-await glide(...(await at('#card-a', 80, 6)));
+await measure('#hero-title', '#card-a');
 await shot('4-measure-text-vs-box');
+await release();
 
 // 5. media: an image
-await page.keyboard.press('Escape');
-await page.waitForTimeout(200);
 await glide(...(await at('#photo', 60, 50)));
 await shot('5-media-image');
 
@@ -79,21 +102,16 @@ await shot('5-media-image');
 await glide(...(await at('#bgvideo', 80, 50)));
 await shot('6-media-video');
 
-// Light theme: click the sun/moon in the header, then re-shoot the key states.
-// No Escape first: the state is armed here, and Escape while armed exits.
-const THEME_X = 1280 - 167;
-await page.mouse.click(THEME_X, 34);
+// Light theme, then re-shoot the key states.
+await pressPanel('.theme');
 await page.waitForTimeout(400);
 
 await glide(...(await at('#hero-title', 120, 24)));
 await shot('7-light-tokens');
 
-const [lx, ly] = await at('#card-a', 80, 6);
-await glide(lx, ly);
-await page.mouse.click(lx, ly);
-await page.waitForTimeout(250);
-await glide(...(await at('#card-b', 80, 6)));
+await measure('#card-a', '#card-b');
 await shot('8-light-measure');
+await release();
 
 await ctx.close();
 console.log('done');

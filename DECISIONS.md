@@ -324,8 +324,8 @@ files.
 - Cross-frame measurement (element in the page vs element inside an iframe).
 - Whether the highlight badge should honour the unit toggle, or stay px as a
   "rendered size" readout. Currently px.
-- A pinned panel mode for reviewing many elements in sequence without the card
-  moving at all.
+- ~~A pinned panel mode for reviewing many elements in sequence without the card
+  moving at all.~~ Done, see "v2: the side panel".
 - Design token matching: flag when a value is off-scale for the site's own
   spacing or type ramp.
 
@@ -379,3 +379,90 @@ differ and only one of them is the file the visitor downloads. Asset scale is
 intrinsic over rendered, which catches both the blurry upscale and the 3x asset
 in a 100px slot. And a muted autoplay loop with no controls is called a
 background loop, because calling it "video" implies something a visitor plays.
+
+## v2: the side panel
+
+The first half of v2. The second half is the arena: the page framed at a
+device size beside the panel. This half ships on its own because it fixes most
+of what a usability pass found, at low risk.
+
+### The floating card became a docked panel
+
+A scripted walkthrough at five window sizes measured what the card cost. It
+took 24% of a 1440px window and 69% of a 500px one, sat on top of the elements
+being inspected, and ran from 672 to 853px tall across five elements, so
+whatever you were reading moved on every hover. It also showed nothing at all
+until the first hover, so a new user had no sign the tool was on.
+
+The panel is docked to an edge at full height and is there from the first
+frame. That removed the grip, the pin, the resize handle, the corner logic and
+the dozen tests that guarded them. All of it existed only because the card
+floated.
+
+It still sits on the page rather than beside it, so what is under it cannot be
+hovered. A dock button flips it to the other edge. Squeezing the page with a
+margin instead was rejected: the layout narrows but media queries still see the
+full window, so you would be measuring a layout no real screen produces. The
+arena fixes this properly by giving the page its own viewport.
+
+### A measurement waits for Cmd or Ctrl
+
+Reported from real use: with A locked, every hover drew a dimension line and
+rewrote the panel, and that is most of what a mouse does. The measurement now
+appears only while the key is held, and a click with the key held keeps it.
+
+Two things followed from that.
+
+A plain click with A locked used to set B. It now selects the clicked element
+as the new A, because with measuring moved to the key there is nothing else a
+plain click should mean.
+
+Cmd and Ctrl already meant "select through overlays". The two meanings are
+split by state: select-through while nothing is locked, measure once A is.
+Doing both at once was rejected, because the element under the cursor would
+change the moment the key went down, which is the moment you are trying to
+measure against it. With A locked, the trail and `Alt` + scroll do the fine
+picking.
+
+The key state is reset on window blur. Cmd+Tab away and the keyup is delivered
+to another window, so the tool would otherwise come back measuring.
+
+### Esc clears and never closes
+
+Esc used to clear, then exit on the next press. One press too many ended the
+session. It now only clears, and with nothing selected it is not swallowed at
+all, so the page gets its Esc back. Closing is the ✕ or the toolbar icon.
+
+### Shortcuts work wherever focus is
+
+Found by the new tests. Clicking a control on the panel leaves focus inside
+it, and keys from our own UI were ignored, so `U` stopped working after any
+click on the panel. The panel has no text fields to protect, so the keys are
+handled regardless of where focus is.
+
+### The palette grew status colours and a third tier
+
+v1 had one accent and two greys. That left no way to say "this is wrong":
+missing alt text and present alt text were the same colour. There are now
+three status colours with one rule, that they only ever mean something was
+checked, plus three grounds and three text tiers so raised, sunken and dimmed
+each have a token.
+
+On the page, the dimension line moved to a deeper pink to carry white text at
+4.5:1, and every mark gained a light halo so it survives a page of its own
+colour. `test/contrast.test.mjs` reads the tokens from the shipped stylesheet
+and fails if a pair drops below its floor.
+
+### Legibility has a test
+
+50 of 74 text elements on the card were under 11px. The panel has a 10px
+floor for uppercase labels and 12px for values, 24px for click targets, and
+every copyable value is a focusable control. The browser suite asserts all
+three, because none of them survive a redesign otherwise.
+
+### What is deliberately not here yet
+
+- Device frames and the stage. Next.
+- An Inspect / Interact switch, so a menu can be opened and then measured.
+- New README and store screenshots. The existing ones are hand-made captures
+  of real sites and show the old card.

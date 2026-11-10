@@ -1,39 +1,33 @@
 /**
- * The inspection card.
+ * The panel's contents.
  *
  * Ordered the way a designer reads a spec: what am I looking at, what is the
- * type, how is it spaced, how is it laid out, what is it filled with. Sections
- * with nothing to say are omitted rather than shown empty, so the card stays
- * short on simple elements.
+ * type, how is it spaced, how is it laid out, what is it filled with. The
+ * sections keep that order and remember whether they are folded, so the thing
+ * you were reading stays where it was as you move between elements.
+ *
+ * The chrome (header, footer) is built once per activation. Only the body is
+ * rebuilt when the selection changes.
  */
 (() => {
   const DT = (window.__designtool = window.__designtool || {});
   const { units, styles, spacingBox, prefs, overlay } = DT;
 
-  const MARGIN = 14;
-  const CARD_WIDTH = 330;
-
   const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-  const DEEP_KEY = IS_MAC ? 'Cmd' : 'Ctrl';
+  const MOD_KEY = IS_MAC ? 'Cmd' : 'Ctrl';
 
+  const STROKE =
+    'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
   const ICONS = {
-    grip:
-      '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-      '<circle cx="6" cy="3" r="1.35"/><circle cx="10" cy="3" r="1.35"/>' +
-      '<circle cx="6" cy="8" r="1.35"/><circle cx="10" cy="8" r="1.35"/>' +
-      '<circle cx="6" cy="13" r="1.35"/><circle cx="10" cy="13" r="1.35"/></svg>',
-    moon:
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
-    close:
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
-      'stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    moon: `<svg ${STROKE}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`,
+    close: `<svg ${STROKE}><path d="M6 6l12 12M18 6L6 18"/></svg>`,
     sun:
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2' +
+      `<svg ${STROKE}><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2` +
       'M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>',
+    // A window with the panel on one side; the filled strip is where it goes.
+    dockLeft: `<svg ${STROKE}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M6 8v8" stroke-width="2.6"/></svg>`,
+    dockRight: `<svg ${STROKE}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="M18 8v8" stroke-width="2.6"/></svg>`,
   };
 
   function el(tag, className, text) {
@@ -64,27 +58,65 @@
     }
   }
 
-  /** Make any node click-to-copy with a brief confirmation flash. */
+  /**
+   * Make any node click-to-copy with a brief confirmation flash.
+   *
+   * These were spans with a click handler, which put every value on the panel
+   * out of reach of the keyboard. They are focusable and answer Enter and
+   * Space now.
+   */
   function copyable(node, text) {
     node.classList.add('copy');
     node.title = `Copy "${text}"`;
-    node.addEventListener('click', async (event) => {
+    node.tabIndex = 0;
+    node.setAttribute('role', 'button');
+    node.setAttribute('aria-label', `Copy ${text}`);
+    const copy = async (event) => {
       event.stopPropagation();
       event.preventDefault();
       if (!(await writeClipboard(text))) return;
       node.classList.add('is-copied');
       setTimeout(() => node.classList.remove('is-copied'), 420);
+    };
+    node.addEventListener('click', copy);
+    node.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') copy(event);
     });
     return node;
   }
 
-  function section(title) {
-    const node = el('section', 'sec');
-    if (title) node.appendChild(el('h2', 'sec-title', title));
-    return node;
+  // Which sections are folded, by title. Adopted from prefs on activation.
+  let folds = {};
+
+  /**
+   * A section whose title folds it. Returns the node to append and the body
+   * to fill; a section with no title is always open.
+   */
+  function section(title, { closed = false } = {}) {
+    const node = el('section', title ? 'sec' : 'sec is-plain');
+    const body = el('div', 'sec-body');
+    if (title) {
+      const open = title in folds ? !folds[title] : !closed;
+      const head = el('button', 'sec-title', title);
+      head.type = 'button';
+      head.setAttribute('aria-expanded', String(open));
+      body.hidden = !open;
+      head.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const next = body.hidden;
+        body.hidden = !next;
+        if (next) overlay.motion(body, 'unfold');
+        head.setAttribute('aria-expanded', String(next));
+        folds = { ...folds, [title]: !next };
+        prefs.set('folds', folds);
+      });
+      node.appendChild(head);
+    }
+    node.appendChild(body);
+    return { node, body };
   }
 
-  function row(parent, label, value, { copy = true, swatch = null, token = null, wrap = false } = {}) {
+  function row(parent, label, value, { copy = true, swatch = null, token = null, wrap = false, tone = null } = {}) {
     if (value == null || value === '') return;
     const line = el('div', 'row');
     line.appendChild(el('dt', null, label));
@@ -123,6 +155,7 @@
     const classes = [
       /^#[0-9A-F]{3,8}$/i.test(String(value)) ? 'is-hex' : null,
       wrap ? 'is-wrap' : null,
+      tone ? `is-${tone}` : null,
     ].filter(Boolean).join(' ');
     const dd = el('dd', classes || null);
     if (swatch) {
@@ -148,7 +181,7 @@
   }
 
   function identityLine(identity) {
-    const line = el('div', 'card-title');
+    const line = el('div', 'identity');
     line.appendChild(el('span', 't-tag', identity.tag));
     if (identity.id) line.appendChild(el('span', 't-id', identity.id));
     if (identity.classes) line.appendChild(el('span', 't-class', identity.classes));
@@ -159,48 +192,68 @@
   function iconButton(className, icon, title, onClick) {
     const button = el('button', `icon-btn ${className}`);
     button.type = 'button';
+    setIcon(button, icon, title);
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      onClick();
+    });
+    return button;
+  }
+
+  function setIcon(button, icon, title) {
     button.title = title;
     button.setAttribute('aria-label', title);
     // Static markup from the ICONS table above, never page content.
     button.innerHTML = icon;
-    if (onClick) {
-      button.addEventListener('click', (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        onClick();
-      });
-    }
-    return button;
   }
 
-  function themeToggle(onChange) {
-    const light = prefs.get('theme') === 'light';
-    return iconButton(
-      'theme',
-      light ? ICONS.moon : ICONS.sun,
-      light ? 'Switch to dark' : 'Switch to light',
-      () => {
-        const next = prefs.get('theme') === 'light' ? 'dark' : 'light';
-        prefs.set('theme', next);
-        overlay.setTheme(next);
-        onChange();
+  function shortName(node) {
+    const tag = node.tagName.toLowerCase();
+    if (node.id) return `${tag}#${node.id}`;
+    const first = typeof node.className === 'string' ? node.className.trim().split(/\s+/)[0] : '';
+    return first ? `${tag}.${first}` : tag;
+  }
+
+  /**
+   * What is selected, and where it sits in the tree.
+   *
+   * The trail is the DOM walk made visible: the last few ancestors, each one a
+   * button that selects it. Alt + scroll still works, but nobody finds it.
+   */
+  function selection(data, state, onSelect) {
+    const wrap = el('div', 'sel');
+    const line = el('div', 'sel-line');
+    const locked = state !== 'armed';
+    line.appendChild(el('span', `mark${locked ? '' : ' is-hover'}`, locked ? 'A' : ''));
+    line.appendChild(identityLine(data.identity));
+    wrap.appendChild(line);
+
+    const chain = [];
+    for (let node = data.el; node && node !== document.documentElement; node = node.parentElement) {
+      chain.unshift(node);
+    }
+    const shown = chain.slice(-4);
+    const trail = el('div', 'crumbs');
+    if (chain.length > shown.length) trail.appendChild(el('span', null, '…'));
+    shown.forEach((node, index) => {
+      if (index || chain.length > shown.length) trail.appendChild(el('span', null, '›'));
+      const current = node === data.el;
+      const crumb = el('button', `crumb${current ? ' is-current' : ''}`, shortName(node));
+      crumb.type = 'button';
+      if (current) {
+        crumb.setAttribute('aria-current', 'true');
+        crumb.tabIndex = -1;
+      } else {
+        crumb.title = `Select ${shortName(node)}`;
+        crumb.addEventListener('click', (event) => {
+          event.stopPropagation();
+          onSelect(node);
+        });
       }
-    );
-  }
-
-  function unitToggle(onChange) {
-    const wrap = el('div', 'units');
-    for (const mode of units.MODES) {
-      const button = el('button', null, mode);
-      button.type = 'button';
-      button.setAttribute('aria-pressed', String(units.mode === mode));
-      button.addEventListener('click', (event) => {
-        event.stopPropagation();
-        units.mode = mode;
-        onChange();
-      });
-      wrap.appendChild(button);
-    }
+      trail.appendChild(crumb);
+    });
+    wrap.appendChild(trail);
     return wrap;
   }
 
@@ -227,7 +280,7 @@
           token ? 'is-token' : null,
         ]);
       }
-      return buildHero(tiles);
+      return buildHero(tiles, true);
     }
 
     if (type.hasText) {
@@ -259,8 +312,8 @@
     }
   }
 
-  function buildHero(tiles) {
-    const wrap = el('div', `hero is-${tiles.length}up`);
+  function buildHero(tiles, isMeasure) {
+    const wrap = el('div', `hero is-${tiles.length}up${isMeasure ? ' is-measure' : ''}`);
     for (const [label, value, sub, subClass] of tiles) {
       // The unit moves into the label so the number itself gets the width. It
       // is the same unit for every tile anyway, and a truncated "123.…" is
@@ -288,51 +341,126 @@
     return match ? [match[1], match[2]] : [value, ''];
   }
 
+  let handlers = null;
+  let nodes = null;
+
   DT.card = {
     copyable,
 
+    /** Adopt stored fold state. Call after prefs.load(). */
+    adopt() {
+      folds = prefs.get('folds') || {};
+    },
+
     /**
-     * Rebuild the card contents.
-     * @param {HTMLElement} card the card element from the overlay
-     * @param {object} data DT.styles.read() result
-     * @param {object} opts { measurement, state, onUnitChange }
+     * Build the header and footer. Called once per activation.
+     * @param {{onChange:Function, onClose:Function, onClear:Function, onSelect:Function}} h
      */
-    render(card, data, opts) {
+    mount(h) {
+      handlers = h;
+      const { head, foot } = overlay;
+      head.textContent = '';
+      foot.textContent = '';
+
+      const brand = el('div', 'brand');
+      brand.appendChild(el('span', 'brand-mark'));
+      brand.appendChild(el('span', null, 'Design Tool'));
+      head.appendChild(brand);
+
+      const unitWrap = el('div', 'units');
+      unitWrap.setAttribute('role', 'group');
+      unitWrap.setAttribute('aria-label', 'Units');
+      for (const mode of units.MODES) {
+        const button = el('button', null, mode);
+        button.type = 'button';
+        button.dataset.unit = mode;
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          units.mode = mode;
+          handlers.onChange();
+        });
+        unitWrap.appendChild(button);
+      }
+      head.appendChild(unitWrap);
+
+      // While the panel sits on the page rather than beside it, whatever is
+      // under it cannot be hovered. Flipping sides is the way to reach it.
+      const side = iconButton('side', '', '', () => {
+        const next = prefs.get('side') === 'left' ? 'right' : 'left';
+        prefs.set('side', next);
+        overlay.setSide(next, true);
+        syncChrome();
+      });
+      const theme = iconButton('theme', '', '', () => {
+        const next = prefs.get('theme') === 'light' ? 'dark' : 'light';
+        prefs.set('theme', next);
+        overlay.setTheme(next);
+        syncChrome();
+      });
+      head.appendChild(side);
+      head.appendChild(theme);
+      head.appendChild(iconButton('close', ICONS.close, 'Close Design Tool', () => handlers.onClose()));
+
+      const dot = el('span', 'status-dot');
+      const text = el('span', 'status-text');
+      text.setAttribute('role', 'status');
+      const clear = el('button', 'btn clear', 'Clear');
+      clear.type = 'button';
+      clear.title = 'Clear the selection (Esc)';
+      clear.addEventListener('click', (event) => {
+        event.stopPropagation();
+        handlers.onClear();
+      });
+      foot.appendChild(dot);
+      foot.appendChild(text);
+      foot.appendChild(clear);
+
+      nodes = { unitWrap, side, theme, dot, text, clear };
+      syncChrome();
+    },
+
+    /**
+     * Rebuild the body and bring the chrome up to date.
+     * @param {object|null} data DT.styles.read() result, or null with nothing
+     *   under the cursor
+     * @param {{measurement:object|null, pair:object|null, state:string,
+     *          measuring:boolean}} opts
+     */
+    render(data, opts) {
+      const body = overlay.body;
+      body.textContent = '';
+      syncChrome();
+      setStatus(opts);
+
+      if (!prefs.get('onboarded')) body.appendChild(guide(opts.state, !!data));
+
+      if (!data) {
+        if (prefs.get('onboarded')) {
+          body.appendChild(el('p', 'empty', 'Hover anything on the page to read its styles.'));
+        }
+        return;
+      }
+
       const fmt = (px) => units.format(px, data.typography.size);
       const ctx = { fmt, copyable };
 
-      card.textContent = '';
-
-      const head = el('div', 'card-head');
-      head.appendChild(dragGrip(card, opts.onUnitChange));
-      head.appendChild(identityLine(data.identity));
-      head.appendChild(themeToggle(opts.onUnitChange));
-      head.appendChild(unitToggle(opts.onUnitChange));
-      head.appendChild(iconButton('close', ICONS.close, 'Stop Design Tool (Esc)', opts.onClose));
-      card.appendChild(head);
-
-      card.classList.toggle('is-pinned', !!pin);
-
-      // What a click will do next, directly under the header. At the bottom of
-      // the card it was the last thing read, and on a long card it was below
-      // the fold: guidance nobody sees is not guidance.
-      card.appendChild(statusBar(opts.state));
-
-      card.appendChild(heroTiles(data, fmt, opts.measurement));
-
-      if (data.media) card.appendChild(mediaSection(data.media, fmt));
+      body.appendChild(selection(data, opts.state, handlers.onSelect));
+      body.appendChild(heroTiles(data, fmt, opts.measurement));
 
       if (opts.measurement) {
-        card.appendChild(measurementSection(opts.measurement, fmt, opts.pair));
+        body.appendChild(measurementSection(opts.measurement, fmt, opts.pair));
       }
+
+      if (data.media) body.appendChild(mediaSection(data.media, fmt));
 
       const type = data.typography;
       if (type.showsType) {
-        const sec = section('Typography');
+        const { node, body: sec } = section('Typography');
         row(sec, 'Font', type.family);
         // Size, weight and line height are in the hero tiles when this element
         // renders text of its own; repeating them here would say it twice.
-        if (!type.hasText) {
+        // While measuring the tiles carry the distance, so they come back.
+        if (!type.hasText || opts.measurement) {
           row(sec, 'Size', fmt(type.size));
           row(sec, 'Weight', `${type.weightName} ${type.weight}`);
           row(
@@ -360,15 +488,15 @@
             token: tokenFor(data.el, 'color', type.color.css),
           });
         }
-        card.appendChild(sec);
+        body.appendChild(node);
       }
 
       const spacing = section('Spacing');
-      spacing.appendChild(spacingBox.render(data, ctx));
-      card.appendChild(spacing);
+      spacing.body.appendChild(spacingBox.render(data, ctx));
+      body.appendChild(spacing.node);
 
       const layout = data.layout;
-      const layoutSec = section('Layout');
+      const { node: layoutNode, body: layoutSec } = section('Layout');
       row(layoutSec, 'Display', layout.display);
       if (layout.direction) row(layoutSec, 'Direction', layout.direction);
       if (layout.wrap && layout.wrap !== 'nowrap') row(layoutSec, 'Wrap', layout.wrap);
@@ -381,10 +509,10 @@
       }
       if (layout.position !== 'static') row(layoutSec, 'Position', layout.position);
       if (layout.zIndex) row(layoutSec, 'z-index', layout.zIndex);
-      card.appendChild(layoutSec);
+      body.appendChild(layoutNode);
 
       const fill = data.fill;
-      const fillSec = section('Fill & effects');
+      const { node: fillNode, body: fillSec } = section('Fill & effects');
       let hasFill = false;
       if (fill.background) {
         row(fillSec, 'Background', fill.background.hex, {
@@ -424,24 +552,89 @@
         });
         hasFill = true;
       }
-      if (hasFill) card.appendChild(fillSec);
+      if (hasFill) body.appendChild(fillNode);
 
-      card.appendChild(shortcuts(opts.state));
+      body.appendChild(shortcuts());
     },
   };
 
+  /** Header controls and anything else that reflects a preference. */
+  function syncChrome() {
+    if (!nodes) return;
+    for (const button of nodes.unitWrap.children) {
+      button.setAttribute('aria-pressed', String(units.mode === button.dataset.unit));
+    }
+    const left = prefs.get('side') === 'left';
+    setIcon(nodes.side, left ? ICONS.dockRight : ICONS.dockLeft, left ? 'Dock to the right' : 'Dock to the left');
+    const light = prefs.get('theme') === 'light';
+    setIcon(nodes.theme, light ? ICONS.moon : ICONS.sun, light ? 'Switch to dark' : 'Switch to light');
+  }
+
+  /** What the next click does. Lives in the footer, where it never moves. */
+  function setStatus({ state, measuring }) {
+    const { dot, text, clear } = nodes;
+    const key = state === 'lockedA' && measuring ? 'measuring' : state;
+    dot.className = `status-dot is-${key}`;
+    text.textContent = '';
+    if (key === 'lockedA') {
+      text.append('Hold ', el('kbd', null, MOD_KEY), ' and hover another element to measure.');
+    } else if (key === 'measuring') {
+      text.append('Click to keep this measurement.');
+    } else if (key === 'lockedAB') {
+      text.append('Measurement kept. Click any element to start again.');
+    } else {
+      text.append('Click an element to lock it.');
+    }
+    clear.hidden = state === 'armed';
+  }
+
+  /**
+   * The whole model in three lines, with the step you are on marked.
+   *
+   * Shown from the first frame until the first measurement is kept, or until
+   * it is dismissed. The tool used to show nothing at all until the first
+   * hover, so a new user had no sign it was on, let alone what to do.
+   */
+  function guide(state, hasTarget) {
+    const wrap = el('div', 'guide');
+    wrap.appendChild(el('div', 'guide-title', 'How it works'));
+    wrap.appendChild(
+      iconButton('guide-close', ICONS.close, 'Hide these steps', () => {
+        prefs.set('onboarded', true);
+        handlers.onChange();
+      })
+    );
+    const now = state === 'armed' ? (hasTarget ? 1 : 0) : 2;
+    const steps = [
+      [['Hover'], ' anything on the page to read its styles.', 0],
+      [['Click'], ' to lock it as A.', 1],
+      [['Hold ', MOD_KEY], ' and hover another element to see the gap. Click to keep it.', 2],
+    ];
+    const list = el('ol');
+    for (const [lead, rest, index] of steps) {
+      const item = el('li', index === now ? 'is-now' : null);
+      item.appendChild(el('span', 'guide-n', String(index + 1)));
+      const copy = el('span');
+      const strong = el('b');
+      strong.append(lead[0]);
+      if (lead[1]) strong.append(el('kbd', null, lead[1]));
+      copy.append(strong, rest);
+      item.appendChild(copy);
+      list.appendChild(item);
+    }
+    wrap.appendChild(list);
+    return wrap;
+  }
+
   function measurementSection(measurement, _fmt, pair) {
     const multi = measurement.values.length > 1;
+    const { node, body } = section(null);
 
-    // A "MEASUREMENT" heading directly under a tile reading HORIZONTAL GAP 24
-    // says nothing the tile did not. The A and B badges label the block on
-    // their own. Multi-value measurements keep a heading, because there the
-    // tiles are edges and the kind of measurement is not stated anywhere else.
-    const sec = multi ? section('Measurement') : el('section', 'sec');
-    if (multi) sec.appendChild(el('p', 'mlead-kind', measurement.note));
-
-    if (pair?.a && pair?.b) sec.appendChild(pairSummary(pair));
-    return sec;
+    // A single gap is named by its tile. Four insets are named here, because
+    // there the tiles are edges and the kind is not stated anywhere else.
+    if (multi) body.appendChild(el('p', 'mlead-kind', measurement.note));
+    if (pair?.a && pair?.b) body.appendChild(pairSummary(pair));
+    return node;
   }
 
   /**
@@ -458,7 +651,7 @@
       const col = el('div', `pair-col is-${key}`);
 
       const head = el('div', 'pair-head');
-      head.appendChild(el('span', `pair-badge is-${key}`, key.toUpperCase()));
+      head.appendChild(el('span', `mark is-${key}`, key.toUpperCase()));
       head.appendChild(el('span', 'pair-name', shortIdentity(data.identity)));
       col.appendChild(head);
 
@@ -567,7 +760,7 @@
    * slot and a blurry 0.5x one are both bugs and neither is visible in the DOM.
    */
   function mediaSection(media, fmt) {
-    const sec = section('Media');
+    const { node, body: sec } = section('Media');
 
     const head = el('div', 'media-head');
     head.appendChild(el('span', 'media-kind', media.kind));
@@ -605,7 +798,10 @@
     if (media.density) {
       // Under 1x is upscaling, which is the one that actually looks broken.
       const label = media.density < 0.95 ? ' upscaled' : media.density >= 1.9 ? ' retina' : '';
-      row(sec, 'Asset scale', `${round(media.density)}x${label}`, { copy: false });
+      row(sec, 'Asset scale', `${round(media.density)}x${label}`, {
+        copy: false,
+        tone: media.density < 0.95 ? 'warn' : null,
+      });
     }
 
     if (media.duration != null) row(sec, 'Duration', `${round(media.duration)}s`);
@@ -629,76 +825,40 @@
       row(sec, 'Alt text', media.hasAlt ? media.alt || 'empty (decorative)' : 'missing', {
         copy: false,
         wrap: true,
+        tone: media.hasAlt ? null : 'danger',
       });
     }
 
-    return sec;
+    return node;
   }
-
-  const STATE_LINE = {
-    armed: 'Click an element to lock it.',
-    lockedA: 'Hover a second element to measure. Click to freeze it.',
-    lockedAB: 'Click anywhere to start a new measurement.',
-  };
 
   const SHORTCUTS = [
-    [['Click'], 'Lock an element'],
-    [['Click', 'Click'], 'Measure between two'],
-    [[DEEP_KEY, 'hover'], 'Select through overlays'],
+    [['Click'], 'Lock an element as A'],
+    [[MOD_KEY, 'hover'], 'With A locked: show the gap'],
+    [[MOD_KEY, 'Click'], 'Keep the measurement'],
+    [[MOD_KEY, 'hover'], 'Nothing locked: select through overlays'],
     [['Alt', 'scroll'], 'Walk the DOM tree'],
     [['U'], 'Cycle px / rem / em'],
-    [['Click'], 'Any value, to copy it'],
-    [['Esc'], 'Clear, then exit'],
+    [['Esc'], 'Clear the selection'],
   ];
 
-  // Whether the shortcut table is expanded. Module-level because the card
-  // rebuilds its contents on every hover: state on the element itself would be
-  // thrown away a few milliseconds after the user opened it.
-  let shortcutsOpen = false;
-
-  /**
-   * The shortcuts, folded away.
-   *
-   * As a keys-and-meaning table they are scannable, and the tool teaches itself
-   * while you use it. But they are learned once and then cost a third of the
-   * card's height forever, which is the wrong trade after the first week. The
-   * state line stays out: that one is live feedback about what a click will do
-   * right now, not reference material.
-   */
-  function statusBar(state) {
-    const bar = el('div', 'status');
-    bar.appendChild(el('span', `status-dot is-${state}`));
-    bar.appendChild(el('span', 'status-text', STATE_LINE[state] || STATE_LINE.armed));
-    return bar;
-  }
-
-  function shortcuts(state) {
-    const sec = el('section', 'sec');
-    const fold = el('details', 'sc-fold');
-    fold.open = shortcutsOpen;
-    fold.addEventListener('toggle', () => {
-      shortcutsOpen = fold.open;
-    });
-
-    const summary = el('summary', 'sc-summary');
-    summary.appendChild(el('span', null, 'Shortcuts'));
-    fold.appendChild(summary);
-
+  /** Reference material, folded by default: learned once, then in the way. */
+  function shortcuts() {
+    const { node, body } = section('Shortcuts', { closed: true });
     const list = el('div', 'sc');
     for (const [keys, meaning] of SHORTCUTS) {
-      const row = el('div', 'sc-row');
+      const line = el('div', 'sc-row');
       const chips = el('div', 'sc-keys');
       keys.forEach((key, index) => {
-        if (index) chips.appendChild(el('span', 'sc-plus', key === 'Click' ? '' : '+'));
+        if (index) chips.appendChild(el('span', 'sc-plus', '+'));
         chips.appendChild(el('kbd', null, key));
       });
-      row.appendChild(chips);
-      row.appendChild(el('div', 'sc-meaning', meaning));
-      list.appendChild(row);
+      line.appendChild(chips);
+      line.appendChild(el('div', 'sc-meaning', meaning));
+      list.appendChild(line);
     }
-    fold.appendChild(list);
-    sec.appendChild(fold);
-    return sec;
+    body.appendChild(list);
+    return node;
   }
 
   function round(n) {
@@ -708,165 +868,4 @@
   function truncate(text, max) {
     return text.length > max ? `${text.slice(0, max - 1)}...` : text;
   }
-
-  // Positioning.
-  //
-  // The card sits in the top-right corner and stays there. Earlier versions
-  // chose a corner from the inspected element and re-chose it as you moved,
-  // which meant the card wandered across the screen while you were just
-  // hovering. One fixed home is calmer and easier to build a habit around.
-  //
-  // Dragging the grip pins it wherever you put it, and a pinned card never
-  // moves on its own. Double-click the grip to send it home.
-
-  let pin = null;
-  let drag = null;
-
-  /** Keep at least a corner of the card on screen whatever the viewport does. */
-  function clamp(left, top, width, height) {
-    return {
-      left: Math.max(4, Math.min(left, window.innerWidth - width - 4)),
-      top: Math.max(4, Math.min(top, window.innerHeight - Math.min(height, 120) - 4)),
-    };
-  }
-
-  /**
-   * The grip: drag to place the card anywhere, double-click to send it back to
-   * the top-right corner. On a wide screen there is usually dead space that
-   * beats any corner the tool could pick.
-   *
-   * Drag state uses pointer capture rather than window listeners. The capture
-   * phase suppressor in inspect.js runs before anything registered later on the
-   * same target, and it calls stopImmediatePropagation(), so a release that
-   * landed on the page used to be swallowed and the card stayed glued to the
-   * cursor. Captured pointer events retarget to the grip, which the suppressor
-   * recognises as our own UI and leaves alone.
-   */
-  function dragGrip(card, onChange) {
-    const grip = iconButton(
-      'grip',
-      ICONS.grip,
-      pin ? 'Drag to move, double-click to send it home' : 'Drag to place the card'
-    );
-    let from = null;
-
-    grip.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const rect = card.getBoundingClientRect();
-      from = { dx: event.clientX - rect.left, dy: event.clientY - rect.top };
-      capture(grip, event.pointerId);
-      overlay.dragging = true;
-    });
-
-    grip.addEventListener('pointermove', (event) => {
-      if (!from) return;
-      event.preventDefault();
-      const rect = card.getBoundingClientRect();
-      pin = clamp(event.clientX - from.dx, event.clientY - from.dy, rect.width, rect.height);
-    });
-
-    // pointerup covers the normal case; lostpointercapture and pointercancel
-    // cover releasing outside the window, which never delivers a pointerup.
-    const end = () => {
-      if (!from) return;
-      from = null;
-      overlay.dragging = false;
-      if (pin) prefs.set('pin', pin);
-      onChange();
-    };
-    grip.addEventListener('pointerup', end);
-    grip.addEventListener('pointercancel', end);
-    grip.addEventListener('lostpointercapture', end);
-
-    grip.addEventListener('dblclick', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      pin = null;
-      prefs.set('pin', null);
-      onChange();
-    });
-
-    return grip;
-  }
-
-  function capture(node, pointerId) {
-    try {
-      node.setPointerCapture(pointerId);
-    } catch {
-      // Pointer already released, or an environment without capture support.
-      // The drag still works, it just cannot follow the cursor off the window.
-    }
-  }
-
-  /**
-   * Wire the resize handle. Called once per activation, since the handle lives
-   * in the overlay rather than in the card's re-rendered contents.
-   *
-   * The limits are read from the stylesheet rather than repeated here: a JS
-   * maximum wider than the CSS one silently ignores the last stretch of the
-   * drag and persists a width the card will never render.
-   */
-  DT.card.attachResizer = function attachResizer(handle, card) {
-    let from = null;
-
-    handle.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const rect = card.getBoundingClientRect();
-      const cs = getComputedStyle(card);
-      from = {
-        x: event.clientX,
-        y: event.clientY,
-        width: rect.width,
-        height: rect.height,
-        minWidth: parseFloat(cs.minWidth) || 260,
-        maxWidth: parseFloat(cs.maxWidth) || 640,
-        minHeight: parseFloat(cs.minHeight) || 160,
-      };
-      capture(handle, event.pointerId);
-      overlay.dragging = true;
-    });
-
-    handle.addEventListener('pointermove', (event) => {
-      if (!from) return;
-      event.preventDefault();
-      const width = clampRange(
-        from.width + (event.clientX - from.x),
-        from.minWidth,
-        from.maxWidth
-      );
-      const height = Math.max(from.minHeight, from.height + (event.clientY - from.y));
-      card.style.width = `${Math.round(width)}px`;
-      card.style.height = `${Math.round(height)}px`;
-    });
-
-    const end = () => {
-      if (!from) return;
-      from = null;
-      overlay.dragging = false;
-    };
-    handle.addEventListener('pointerup', end);
-    handle.addEventListener('pointercancel', end);
-    handle.addEventListener('lostpointercapture', end);
-  };
-
-  function clampRange(value, min, max) {
-    return Math.max(min, Math.min(value, max));
-  }
-
-  /** Adopt the stored pin. Call after prefs.load(). */
-  DT.card.adopt = function adopt() {
-    pin = prefs.get('pin');
-  };
-
-  /** @param {HTMLElement} card */
-  DT.card.position = function position(card) {
-    const rect = card.getBoundingClientRect();
-    const width = rect.width || CARD_WIDTH;
-    if (pin) return clamp(pin.left, pin.top, width, rect.height);
-    return { left: window.innerWidth - width - MARGIN, top: MARGIN };
-  };
 })();

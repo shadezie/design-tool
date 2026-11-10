@@ -11,10 +11,10 @@ Everything here is defined as CSS custom properties on `.layer` in
 
 1. **The tool is not the page.** Dark, flat, quiet. If the UI has a visual
    opinion, it is getting in the way of the one being reviewed.
-2. **Numbers are the interface.** Everything else on the card is a label for a
+2. **Numbers are the interface.** Everything else on the panel is a label for a
    number. Numbers are monospaced, right-aligned, and copyable.
-3. **Never cover what is being measured.** Position rules exist to keep the
-   card out of the work area.
+3. **Never cover what is being measured.** The tool lives beside the page, in
+   one place, at one size.
 4. **Nothing is hidden to save space.** A zero value is dimmed, not removed, so
    the layout stays stable as you move between elements and your eye can stay
    in one place.
@@ -34,57 +34,93 @@ sparingly.
 
 Two token groups, and they are not interchangeable. The **page overlay**
 (highlights, dimension lines, badges) is never themed: it has to read on top of
-whatever the site being reviewed looks like. The **card** is themed.
+whatever the site being reviewed looks like. The **panel** is themed.
 
-| Token | Dark (Obsidian) | Light (Paper) |
-| --- | --- | --- |
-| `--bg` | `#0B0B0C` | `#FCFCFB` |
-| `--bg-soft` | `#151517` | `#F1F1EF` |
-| `--line` | `rgba(255,255,255,0.13)` | `rgba(24,24,20,0.12)` |
-| `--text` | `#FFFFFF` | `#191917` |
-| `--muted` | `#A2A6AD` | `#6C6C66` |
-| `--accent` | `#3B63FF` | `#2A51FD` (brand) |
-| `--accent-text` | `#92AAFF` | `#2442C9` |
-| `--flash` | `rgba(255,255,255,0.09)` | `rgba(24,24,20,0.055)` |
-| `--dot-b` | `#FFB020` | `#C77700` |
+Every pair below is held to a contrast floor by `test/contrast.test.mjs`, which
+reads the tokens out of the shipped stylesheet. Change a value and the test
+tells you whether it still holds.
+
+### Surfaces and text
+
+Three grounds and three text tiers. v1 had two of each, so a raised tile and a
+sunken footer were the same colour, and "dimmed on purpose" was a one-off grey.
+
+| Token | Dark (Obsidian) | Light (Paper) | Use |
+| --- | --- | --- | --- |
+| `--bg` | `#0D0E10` | `#F8F8F5` | The panel |
+| `--bg-raised` | `#181A1E` | `#FFFFFF` | Tiles, chips, the unit control, buttons |
+| `--bg-sunken` | `#070809` | `#EEEEEA` | The status footer |
+| `--line` | white 10% | ink 11% | Hairlines between sections |
+| `--line-strong` | white 20% | ink 22% | Control borders, box-model rings |
+| `--text` | `#F4F5F6` | `#1A1A17` | Values. 7:1 or better on every ground |
+| `--text-2` | `#A6ACB5` | `#5C5C55` | Labels. 4.5:1 or better on every ground |
+| `--text-3` | `#747A84` | `#85857D` | Zero values and separators only. 3:1 |
+| `--hover` | white 8% | ink 6% | Hover ground for anything clickable |
+
+Text is no longer pure white on dark. `#FFFFFF` on near-black halates at 12px,
+and stepping it back is the difference between a value and a glare.
 
 The grounds are neutral on purpose, and the two themes lean opposite ways:
-cool-neutral in dark, warm-neutral in light.
+cool-neutral in dark, warm-neutral in light. Dark was once brand Ink, a navy,
+which put the ground and the accent in the same family. Light was once cool
+grey on white, which is what the average website already is, so the tool
+disappeared on exactly the pages it is used on. On Paper the raised surfaces
+are pure white, which reads as lifted without needing a shadow.
 
-**Dark was brand Ink**, a navy. That put the ground, the raised surfaces and the
-accent all in the blue family, so the accent had nothing to be brighter than,
-and a coloured ground competed with whatever site sat behind it. Near-black is
-inert: the card reads as chrome, and the blue is the only chromatic thing on it.
+### Accent
 
-**Light was cool grey on white**, which is the one thing that cannot work here.
-The average website is already white and cool grey, so the card went invisible
-on exactly the pages it is used on. Warm neutrals separate it from the page
-without raising its contrast.
+| Token | Dark | Light | Use |
+| --- | --- | --- | --- |
+| `--accent` | `#3B63FF` | `#2A51FD` (brand) | Fills that carry `--on-accent` text |
+| `--accent-text` | `#9DB2FF` | `#2442C9` | The same hue as text: tags, hex values, token names |
+| `--accent-soft` | accent 20% | accent 10% | The first-run steps |
 
-`--accent` fills things that carry white text. It stays brand-exact on light.
-On dark it does not: `#2A51FD` does not hold against `#0B0B0C`, so it lifts to
-`#3B63FF` there. That is a deliberate trade, legibility over brand exactness, on
-the one theme where the brand value fails.
+`--accent` stays brand-exact on light. On dark `#2A51FD` does not hold against
+near-black, so it lifts to `#3B63FF`: legibility over brand exactness, on the
+one theme where the brand value fails.
 
-`--accent-text` is the same value used as text rather than as a fill, lifted far
-enough to read on each ground. Hex readouts and token names use it.
+### Status
 
-`--dot-b` exists because the B highlight is amber on the page and always will be,
-but a 6px amber dot on a near-white card is not visible. Only the status dot
-uses it; filled chips keep the page colour, since they carry dark text and work
-on either ground.
+New in v2. A QA pass is looking for three things: a value that is right, one
+that is a guess, one that is a bug. v1 had no colour for any of them, so "alt
+text: missing" looked exactly like "alt text: A gradient".
 
-### Functional colours, outside the brand palette
+| Token | Dark | Light | Means | Used for |
+| --- | --- | --- | --- | --- |
+| `--ok` | `#3DD68C` | `#0B7A4B` | Right | A gap that lands on a spacing token. The copied flash |
+| `--warn` | `#FFB224` | `#8F5400` | Check this | An upscaled asset. The underline on a token matched by value |
+| `--danger` | `#FF6369` | `#C8253A` | Bug | Missing alt text. The close button on hover |
+
+Each has an `--on-*` colour for text on its fill and a `-soft` tint. Status
+colours never decorate: if it is green, something was verified.
+
+### Page overlay
 
 | Token | Hex | Why |
 | --- | --- | --- |
 | `--hl-a` | `#2A51FD` | Brand primary. The element you picked |
-| `--hl-b` | `#FFB020` | A second element must be tellable apart from the first |
-| `--measure` | `#FF3B6B` | A dimension line must be tellable apart from both |
+| `--hl-b` | `#FFB224` | The second element. Blue and amber are far apart in lightness as well as hue |
+| `--measure` | `#E01563` | A dimension line must be tellable apart from both, and carry white text at 4.5:1 |
+| `--halo` | white 82% | A light ring outside every mark |
 
-The brand palette has one accent. Measurement needs three signals at once on top
-of an arbitrary site, so B and the dimension lines borrow amber and pink. They
-are the only non-brand colours in the tool and they never touch the card chrome.
+Three things changed here, all for sites the old colours failed on:
+
+- **The halo.** A blue outline on a blue hero, or any outline on a dark page,
+  used to vanish. Every highlight, tag and dimension line now has a 1px light
+  ring outside it: invisible on white, decisive on anything else.
+- **Letters, not only colours.** The A and B tags start with their letter, so
+  the two boxes are tellable apart on a page that is itself blue or orange.
+- **Hover is not a selection colour.** With A locked, the element under the
+  cursor gets a dashed outline and a neutral ink tag. It used to get the same
+  blue tag as A.
+
+### Box model
+
+Margin orange, border yellow, padding green, content blue: the order DevTools
+taught everyone. Each is a token (`--box-margin`, `--box-border`,
+`--box-padding`, `--box-content`) with a dark and a light value. The content
+tint is laid on the panel ground rather than on the three tints above it, which
+used to turn the blue olive.
 
 ## Type
 
@@ -99,66 +135,81 @@ guarded and the stack falls back to the platform fonts.
 | Labels, values, inspector readouts, section titles | IBM Plex Mono |
 | Hints and prose | Plus Jakarta Sans |
 
-The guideline assigns **labels as well as values** to the mono, which is why row
-labels are mono rather than sans. Mono labels are wider, so the label column is
-106px rather than the 88px the sans version used.
+Row labels are sans and values are mono: a label is read as a word, a value as
+a number that has to align with the one above it. Uppercase micro labels are
+mono.
 
 | Style | Size / weight / tracking |
 | --- | --- |
-| Section title | 9px / 500 mono / `0.18em`, uppercase, `--muted` |
-| Tile label | 8px / 500 mono / `0.12em`, uppercase, `--muted` |
-| Tile value | 18px / 500 mono / `-0.02em`, `--text` |
-| Label (`dt`) | 11px / 400 mono, `--muted` |
-| Value (`dd`) | 12px / 400 mono, `--text`, right-aligned |
-| Shortcut meaning, state line | 11px / 400 sans, `--muted` / `--text` |
+| Section title, tile label, ring label | 10px / 500 mono, uppercase, `0.03em` to `0.14em`, `--text-2` |
+| Tile value | 20px / 500 mono / `-0.02em`, `--text`. 28px for a single distance |
+| Label (`dt`) | 12px / 400 sans, `--text-2` |
+| Value (`dd`) | 12px / 450 mono, `--text`, right-aligned |
+| Selection identity | 12.5px / 500 mono |
+| Status line, steps | 12 to 12.5px / 400 sans |
 
-Section labels take the brand's `0.18em` uppercase tracking. Tile labels drop to
-`0.12em` at 8px, because `LINE HEIGHT PX` clips inside an 86px tile at `0.18em`.
-Display sizes tighten tracking per the guideline's `-0.035em` note; at 18px the
-tile values take `-0.02em`.
+**Nothing on the panel is under 10px, and values are 12px.** v1 set 50 of its
+74 text elements under 11px, down to 8px, to fit a 330px card. The browser
+suite asserts the floor.
+
 
 ## Space
 
 A 4px base. Used values: 2, 4, 6, 8, 10, 12, 14.
 
-- Card padding: `10px 12px` per section.
-- Row gap: `8px` between label column and value column.
-- Label column: fixed `88px`, so values align down the whole card regardless of
-  label length.
-- Card width: `330px`. Wide enough for `Letter spacing  -0.64px (-2%)` and for
-  a six-figure stat tile, narrow enough to dock without eating the viewport.
-- Card max height: `82vh`, then it scrolls.
+- Panel width: `360px`, full height, docked to an edge.
+- Section padding: `12px 14px`.
+- Label column: fixed `104px`, so values align down the whole panel.
+- Click targets: 28px icon buttons, 24px minimum for everything else. The
+  browser suite asserts that too.
 
 ## Radius and depth
 
 | Element | Radius |
 | --- | --- |
-| Card | 10px |
-| Ring, content box, copy flash | 4-5px |
-| Unit toggle | 6px (track), 4px (button) |
-| Dimension label, element badge | 3-4px |
+| Tiles, pair columns | 8px |
+| Buttons, unit control, box-model rings | 6-7px |
+| Marks, kbd, copy flash, dimension label | 4px |
 | Highlight rect | 1px |
 
-One shadow, on the card only: `0 12px 32px rgba(0,0,0,0.45)`. Dimension labels
-get a small `0 1px 4px` to stay readable over busy pages. Nothing else is
-elevated.
+One shadow, on the panel's inner edge, to lift it off the page it sits on.
+Dimension labels get a small `0 1px 4px` to stay readable over busy pages.
 
 ## Components
 
-### Card
+### Panel
 
-Sticky header (identity + unit toggle), then sections in reading order:
-Measurement, Typography, Spacing, Layout, Fill & effects, then the hint bar.
+Three regions that never move: a header (name, units, dock edge, theme,
+close), a scrolling body, and a status footer.
+
+The body in reading order: first-run steps, selection, hero tiles, the two
+measured elements, Media, Typography, Spacing, Layout, Fill & effects,
+Shortcuts. Every titled section folds from its title and remembers it.
 
 Sections with nothing meaningful to report are omitted, not shown empty. An
-image has no typography; a static div has no fill. Omitting keeps the card short
-on simple elements, which is most of them.
+image has no typography; a static div has no fill.
 
-### Identity line
+### Selection
 
-`div#hero.card` in mono, coloured by part: tag in `--accent`, id in
-`--accent-b`, classes in `--muted`. Truncated to two classes with a `+n`
-counter. It reads like a selector because that is what it is.
+A mark, then `div#hero.card` in mono, coloured by part: tag in `--accent-text`,
+id in `--syntax-id`, classes in `--text-2`. The mark is a filled blue `A` once
+locked and a dashed square while only hovering, matching the outline on the
+page.
+
+Under it, a trail of the last few ancestors. Each is a button that selects it.
+This is the DOM walk as something you can see; `Alt` + scroll still works.
+
+### First-run steps
+
+Three numbered lines on `--accent-soft`, with the step you are on filled in.
+Shown from the first frame until a measurement has been kept or the steps are
+dismissed. Numbered because it is a sequence.
+
+### Status footer
+
+A dot in the state's colour, one sentence saying what the next click does, and
+a Clear button whenever something is locked. It is on `--bg-sunken` because it
+is the tool talking to you rather than data about the page.
 
 ### Stat tiles
 
@@ -171,74 +222,51 @@ anything else. Which three depends on what the element is:
 | Flex or grid container | `W` · `H` · `Gap` |
 | Anything else | `W` · `H` |
 
-Value 18px/600 mono in `--text`. Label 9px/600 uppercase `0.08em` in `--muted`.
-Tile is `--bg-soft`, 6px radius, `8px 10px` padding, equal-width grid with an
-8px gutter.
+Tile is `--bg-raised` with a hairline, 8px radius, equal-width grid with an 8px
+gutter. While measuring, the tiles carry the distance instead and take a
+`--measure` border.
 
 **The unit lives in the label, not the value.** `WIDTH PX` over `1200`, not
 `1200px`. Every tile shares the unit, the toggle in the header already states
 it, and the number needs the width: a truncated `123.…` is worse than useless
 during QA. Copying a tile still copies the full value with its unit.
 
-A qualifier rides after the value at 10px muted: `700 Bold`, `38.4 1.2x`.
+A qualifier rides after the value at 11px `--text-2`: `700 Bold`, `38.4 1.2x`.
 
 When the type trio is on show, those three rows are dropped from the Typography
 section below, so nothing is stated twice.
 
 ### Row
 
-A two-column grid, `88px 1fr`. Label left in sans and muted, value right in mono
-and full contrast. Colour values get a 9px swatch chip before the hex.
+A two-column grid, `104px 1fr`. Label left in sans and `--text-2`, value right
+in mono and full contrast. Colour values get a 12px swatch chip before the hex.
+A row can take a status tone: `--warn` for an upscaled asset, `--danger` for
+missing alt text.
 
 ### Copyable value
 
-Every number and colour is click-to-copy. Hover shows a soft
-`rgba(255,255,255,0.07)` background with a 3px spread, so the hit target reads
-as larger than the text. On copy it flashes `--accent` for 420ms. Cursor is
-`copy`.
+Every number and colour is click-to-copy, and each one is a focusable control
+that answers Enter and Space. Hover shows `--hover` with a 3px spread, so the
+hit target reads as larger than the text. On copy it flashes `--ok` for 420ms.
+Cursor is `copy`.
 
 ### Spacing box
 
 Four nested rings, outside in: margin (amber tint), border (grey tint), padding
 (green tint), content (blue tint). Each ring is dashed, labelled at its top-left
-in 8px uppercase, with its four side values placed on the corresponding sides.
+in 10px uppercase, with its four side values placed on the corresponding sides.
 
-Zero sides are dimmed to `#565D68`, never hidden, so the diagram keeps a stable
+Zero sides are dimmed to `--text-3`, never hidden, so the diagram keeps a stable
 shape. The content box shows width and height as separate `W` / `H` rows: in rem
 a single `W x H` line gets long enough to wrap and shove the rings around.
 
 When the element is a flex or grid container, its `gap` is stated directly under
 the diagram. Gap versus padding is the confusion this panel exists to end.
 
-### Header controls
-
-Left to right: drag grip, identity, theme toggle, unit control, close. 22x22
-icon buttons, 14px stroked SVG at `--muted`, going to `--text` on a `--flash`
-ground. Close is the exception: it goes white on `--measure`, because stopping
-the tool is the one destructive thing in the header.
-
-The grip turns `--accent` while the card is pinned, the only indication that the
-card is no longer in its home position.
-
 ### Shortcuts
 
-A state line in `--text` saying what to do next, then a keys-and-meaning table:
-a 104px column of `kbd` chips, then the meaning in sans `--muted`.
-
-This was a paragraph of prose, which nobody reads. As a table it is scannable
-and the tool teaches itself while you use it. Keep every meaning to one line at
-330px; that is the whole point of the format.
-
-### Resize handle
-
-A 16x16 corner chevron that rides on the card's bottom-right corner but lives
-*outside* the card in the overlay layer, so it never scrolls away with the
-content and never collides with the scrollbar. 2px `--muted` borders, going
-`--accent` on hover. Min 260x160, max 680 wide.
-
-The card's max height is recomputed from its top edge every frame. Pinned low on
-a tall page it would otherwise run past the viewport and take its own resize
-handle out of reach.
+A keys-and-meaning table in the last section, folded by default: learned once,
+then in the way. The live guidance is the status footer, not this.
 
 ### Highlights
 
@@ -256,29 +284,55 @@ one, so the line stays continuous underneath it.
 
 ### Unit toggle
 
-A three-up segmented control in the card header. The active mode is a filled
-`--accent` pill; inactive modes are `--muted` text that goes full contrast on
+A three-up segmented control in the panel header. The active mode is a filled
+`--accent` pill; inactive modes are `--text-2` text that goes full contrast on
 hover. `aria-pressed` carries the state.
 
 ## Behaviour rules
 
-- **The card has one home: the top-right corner, and it stays there.** It does
-  not follow the cursor and it does not pick a side per element. Both of those
-  shipped and both were wrong: a card anchored to the pointer can never be
-  reached, and a card that re-chooses its corner wanders across the screen while
-  you are only hovering. One fixed home is calmer and you build a habit around
-  it.
-- **A pinned card does not move at all.** Dragging the grip pins it wherever you
-  drop it; double-clicking the grip sends it home. Position, size and theme
-  persist across pages.
-- **A drag that starts on the card never selects an element.** Releasing a drag
-  or resize outside the card fires a click at the page; the press origin is
-  tracked so that click is swallowed.
-- The overlay layer is `pointer-events: none`; only the card opts back in, so
+- **The panel has one place and one size.** It was a floating card, and every
+  version of that was wrong somewhere: following the cursor it could not be
+  reached, choosing a corner it wandered, and fixed in a corner it still
+  covered a quarter of the page and changed height on every hover.
+- **A measurement appears only while Cmd or Ctrl is held.** With A locked,
+  hovering shows a dashed outline of what a click would select. Hold the key
+  and that element becomes B, with the gap drawn. Click with the key held to
+  keep it.
+- **A click selects.** With no key held, clicking always makes that element A,
+  whatever was selected before.
+- **Esc clears and never closes.** Closing is the ✕ or the toolbar icon.
+- **A press that starts on the panel never selects an element.** The press
+  origin is tracked so a release over the page is swallowed.
+- The overlay layer is `pointer-events: none`; only the panel opts back in, so
   hovering the page always reaches the page.
 - Everything is fixed-position inside a viewport-clipped layer at
   `z-index: 2147483647`, and the host element is re-attached every frame in case
   the page rewrites the DOM.
+
+## Motion
+
+What moves is decided by how often it happens.
+
+| Moment | Frequency | Motion |
+| --- | --- | --- |
+| Panel opens | A few times a session | Slides out of its edge. 220ms, `--ease-drawer` |
+| Panel closes | A few times a session | Slides back into the same edge. 160ms, `--ease-out` |
+| Panel flips sides | Rare | Travels the distance it moved. 220ms, `--ease-in-out` |
+| A section unfolds | Occasional | Fades in and settles 4px. 160ms, `--ease-out` |
+| A control is pressed | Often | Scales to 0.97 for 140ms |
+| A value is copied | Often | Fills with `--ok` at once, fades back |
+| Hover highlight, dimension lines, panel contents | Many times a second | **Never animates** |
+| Measurement appears on Cmd / Ctrl | Keyboard, constantly | **Never animates** |
+
+The last two are the rule that matters. Anything that follows the mouse or a
+held key has to be instant, or the tool feels like it is lagging behind your
+hand.
+
+Only `transform` and `opacity` move. The curves are tokens on `.layer`, and
+`overlay.motion()` is the one place they are used, through the Web Animations
+API: a CSS entry animation would fire again every time the panel body is
+rebuilt, which is on every hover. With `prefers-reduced-motion` the movement
+goes and a 120ms fade stays.
 
 ## Icon
 
@@ -291,15 +345,16 @@ sizes better than a browser downscale does, so prefer exporting from there.
 Figma has not exported; check the 16px result by eye before keeping it, since
 that is where the cursor and the top-left bracket start to merge.
 
-Note the icon blue (`#2A51FD`) is deeper than the UI accent (`--accent`,
-`#4F8CFF`). The lighter blue is chosen to stay legible on top of arbitrary
+Note the icon blue (`#2A51FD`) is deeper than the dark-theme accent (`--accent`,
+`#3B63FF`). The lighter blue is chosen to stay legible on top of arbitrary
 websites, which the icon never has to do.
 
 ## Adding to the UI
 
 Before adding a row, ask whether a designer would check it during QA. Before
 adding a section, ask whether it can be omitted when empty. Before adding a
-colour, use one of the three that already exist.
+colour, use a token that already exists, and if it is a status colour, make
+sure something was actually verified.
 
 ## Token rows
 
@@ -308,9 +363,9 @@ and the value sits under it, quieter.
 
 | Part | Spec |
 | --- | --- |
-| Token name | 11.5px/500 mono, `--accent-text` |
-| Value match | the same, with `underline dotted var(--line)`, 3px offset |
-| Raw value | 10.5px/400 mono, `--muted`, right-aligned under the name |
+| Token name | 12px/500 mono, `--accent-text` |
+| Value match | the same, with `underline dotted var(--warn)`, 3px offset |
+| Raw value | 11px/400 mono, `--text-2`, right-aligned under the name |
 
 Both halves copy independently: the name yields `var(--token)` for code, the
 value yields the hex for Figma.
@@ -319,15 +374,15 @@ value yields the hex for Figma.
 
 | Part | Spec |
 | --- | --- |
-| Kind | 11.5px/500 sans, `--text` |
-| Format chip | 9px/500 mono, white on `--accent`, 4px radius, `2px 6px` |
+| Kind | 12.5px/500 sans, `--text` |
+| Format chip | 10px/500 mono, `--on-accent` on `--accent`, 4px radius |
 
-The format is the one thing being looked for, so it is the only chip on the card
+The format is the one thing being looked for, so it is the only chip on the panel
 that gets a filled accent ground.
 
-## A/B pair columns
+## A/B pair
 
-Two equal columns on `--bg-soft`, 5px radius, 8px gutter, under a hairline rule.
-Each carries a 13px square badge in the same colour as that element's on-page
-highlight (`--hl-a`, `--hl-b`), so the column and the box it describes are
-obviously the same thing. Keys are 9.5px `--muted`, values 10.5px/500 `--text`.
+Two stacked blocks on `--bg-raised`, 8px radius. Each carries a 16px lettered
+mark in the same colour as that element's on-page highlight (`--hl-a`,
+`--hl-b`), so the block and the box it describes are obviously the same thing.
+Keys are 11px `--text-2`, values 12px/500 `--text`.

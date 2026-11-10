@@ -3,7 +3,7 @@
  *
  * While armed, the page must not react to the pointer: clicking a nav link to
  * measure it should not navigate away. Everything is captured at the window in
- * the capture phase and suppressed, except events from our own card.
+ * the capture phase and suppressed, except events from our own panel.
  */
 (() => {
   const DT = (window.__designtool = window.__designtool || {});
@@ -53,9 +53,9 @@
   }
 
   /**
-   * @param {boolean} deep hold Cmd (macOS) or Ctrl to reach the most specific
-   *   thing under the cursor rather than the topmost painted one, the way Figma
-   *   lets you select through a group.
+   * @param {boolean} deep reach the most specific thing under the cursor
+   *   rather than the topmost painted one, the way Figma lets you select
+   *   through a group.
    */
   function pick(x, y, deep) {
     const visible = stackAt(x, y).filter(paints);
@@ -88,26 +88,27 @@
 
   /**
    * @param {{onMove:Function, onPick:Function, onWalk:Function, onEscape:Function,
-   *          onLeave:Function, onCycleUnits:Function}} handlers
-   *   onMove receives (x, y, deep).
+   *          onLeave:Function, onCycleUnits:Function, onModifier:Function}} handlers
+   *   onMove and onPick receive (x, y, mod), where mod is Cmd (macOS) or Ctrl
+   *   being held. What the modifier means is the state machine's business:
+   *   select-through with nothing locked, measure once A is.
    * @returns {Function} unbind
    */
   function bind(handlers) {
     let frame = 0;
     let pending = null;
-    let deep = false;
+    let mod = false;
 
     function schedule() {
       if (frame || !pending) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
-        if (pending) handlers.onMove(pending.x, pending.y, deep);
+        if (pending) handlers.onMove(pending.x, pending.y, mod);
       });
     }
 
     function onMouseMove(event) {
-      if (overlay.dragging) return;
-      deep = event.metaKey || event.ctrlKey;
+      setMod(event.metaKey || event.ctrlKey);
       if (overlay.ownsEvent(event)) return;
       pending = { x: event.clientX, y: event.clientY };
       schedule();
@@ -115,19 +116,29 @@
 
     /** Pressing or releasing the modifier re-picks without needing a move. */
     function onModifier(event) {
-      const next = event.metaKey || event.ctrlKey;
-      if (next === deep) return;
-      deep = next;
+      setMod(event.metaKey || event.ctrlKey);
+    }
+
+    function setMod(next) {
+      if (next === mod) return;
+      mod = next;
+      handlers.onModifier(mod);
       schedule();
+    }
+
+    // Cmd+Tab away and the keyup lands in another window. Without this the
+    // tool would come back still believing the key is down.
+    function onBlur() {
+      setMod(false);
     }
 
     function onMouseLeave(event) {
       if (event.relatedTarget === null) handlers.onLeave();
     }
 
-    // A drag that starts on the card (moving it by the grip, or pulling the
-    // resize corner) ends with a click whose target is the page. Without this
-    // the release would lock whatever happened to be under the pointer.
+    // A press that starts on the panel and is released over the page ends with
+    // a click whose target is the page. Without this the release would lock
+    // whatever happened to be under the pointer.
     let pressedOnUI = false;
 
     function suppress(event) {
@@ -143,7 +154,7 @@
       event.stopImmediatePropagation();
 
       if (event.type === 'click') {
-        if (!pressedOnUI) handlers.onPick(event.clientX, event.clientY);
+        if (!pressedOnUI) handlers.onPick(event.clientX, event.clientY, event.metaKey || event.ctrlKey);
         pressedOnUI = false;
       }
     }
@@ -151,12 +162,17 @@
     function onKeyDown(event) {
       onModifier(event);
       if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        handlers.onEscape();
+        // Only swallow it when there is a selection to clear. With nothing
+        // locked, Esc belongs to the page again.
+        if (handlers.onEscape()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
         return;
       }
-      if (overlay.ownsEvent(event)) return;
+      // These work wherever focus is. Clicking a control on the panel leaves
+      // focus inside it, and the panel has no text fields to protect, so
+      // ignoring keys from our own UI just made U stop working after a click.
       // Let the browser keep its own chords: Cmd+U, Ctrl+U and friends.
       if ((event.key === 'u' || event.key === 'U') && !event.metaKey && !event.ctrlKey && !event.altKey) {
         event.preventDefault();
@@ -182,6 +198,7 @@
     const options = { capture: true };
     window.addEventListener('mousemove', onMouseMove, options);
     window.addEventListener('keyup', onModifier, options);
+    window.addEventListener('blur', onBlur);
     window.addEventListener('mouseout', onMouseLeave, options);
     window.addEventListener('keydown', onKeyDown, options);
     window.addEventListener('wheel', onWheel, { capture: true, passive: false });
@@ -191,6 +208,7 @@
       if (frame) cancelAnimationFrame(frame);
       window.removeEventListener('mousemove', onMouseMove, options);
       window.removeEventListener('keyup', onModifier, options);
+      window.removeEventListener('blur', onBlur);
       window.removeEventListener('mouseout', onMouseLeave, options);
       window.removeEventListener('keydown', onKeyDown, options);
       window.removeEventListener('wheel', onWheel, { capture: true });

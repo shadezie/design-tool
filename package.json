@@ -5,7 +5,7 @@
   "description": "Chrome extension for design QA. The extension itself has no build step and no runtime dependencies; this file exists only for the end-to-end tests.",
   "type": "module",
   "scripts": {
-    "test": "node test/manifest.test.mjs && node test/measure.test.mjs && node test/verify.mjs",
+    "test": "node test/manifest.test.mjs && node test/measure.test.mjs && node test/contrast.test.mjs && node test/verify.mjs",
     "test:unit": "node test/measure.test.mjs",
     "test:e2e": "node test/verify.mjs",
     "dev": "node test/build-dev.mjs",

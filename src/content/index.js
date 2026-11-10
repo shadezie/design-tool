@@ -20,6 +20,9 @@
   let elB = null;
   let hoverEl = null;
   let cursor = { x: 0, y: 0 };
+  // Cmd (macOS) or Ctrl is held. With A locked, that is what asks for a
+  // measurement; without it, hovering only shows what a click would select.
+  let modifier = false;
   let cardSignature = '';
   let lastMeasureKey = '';
   let armToken = 0;
@@ -70,9 +73,15 @@
     const target = subject();
     if (!target) {
       overlay.clearHighlights();
-      lastMeasureKey = 'none';
-      overlay.setMeasurement(null, () => '');
-      overlay.showCard(false);
+      if (lastMeasureKey !== 'none') {
+        lastMeasureKey = 'none';
+        overlay.setMeasurement(null, () => '');
+      }
+      // The panel is there from the first frame, with nothing selected yet.
+      if (cardSignature !== 'empty') {
+        cardSignature = 'empty';
+        card.render(null, { state, measuring: false, measurement: null, pair: null });
+      }
       return;
     }
 
@@ -80,28 +89,32 @@
     const rectB = elB ? elB.getBoundingClientRect() : null;
     const rectHover = hoverEl ? hoverEl.getBoundingClientRect() : null;
 
+    // What A is being measured against, if anything. A kept measurement stays
+    // on screen by itself. A live one exists only while the modifier is held:
+    // it used to appear on every hover after locking A, which buried the page
+    // in dimension lines while you were only moving the mouse.
+    const other = hoverEl && hoverEl !== elA ? hoverEl : null;
+    const measuring = state === 'lockedA' && modifier && !!other;
+    const partnerEl = state === 'lockedAB' ? elB : measuring ? other : null;
+    const partnerRect = state === 'lockedAB' ? rectB : measuring ? rectHover : null;
+
     overlay.clearHighlights();
     if (state === 'armed') {
       overlay.setHighlight('hover', rectHover, label(hoverEl, rectHover));
     } else {
-      overlay.setHighlight('a', rectA, label(elA, rectA));
-      const other = state === 'lockedAB' ? elB : hoverEl !== elA ? hoverEl : null;
-      const otherRect = state === 'lockedAB' ? rectB : hoverEl !== elA ? rectHover : null;
-      if (otherRect) overlay.setHighlight('b', otherRect, label(other, otherRect));
+      overlay.setHighlight('a', rectA, label(elA, rectA, 'A'));
+      if (partnerRect) overlay.setHighlight('b', partnerRect, label(partnerEl, partnerRect, 'B'));
+      // Not measuring: a dashed outline for what a click would select next.
+      else if (state === 'lockedA' && other) overlay.setHighlight('hover', rectHover, label(other, rectHover));
     }
 
     // The measurement follows the live rects, so it stays true while scrolling.
     let result = null;
-    let partner = null;
-    if (rectA) {
-      const otherEl = state === 'lockedAB' ? elB : hoverEl !== elA ? hoverEl : null;
-      const against = state === 'lockedAB' ? rectB : hoverEl && hoverEl !== elA ? rectHover : null;
-      if (against) {
-        const [outerRect, innerRect] = insetForBorder(elA, rectA, otherEl, against);
-        result = measure(outerRect, innerRect);
-        partner = otherEl;
-      }
+    if (rectA && partnerRect) {
+      const [outerRect, innerRect] = insetForBorder(elA, rectA, partnerEl, partnerRect);
+      result = measure(outerRect, innerRect);
     }
+    const partner = result ? partnerEl : null;
 
     const data = styles.read(target);
     const fmt = (px) => units.format(px, data.typography.size);
@@ -117,11 +130,7 @@
       overlay.setMeasurement(result, fmt);
     }
 
-    renderCard(data, result, partner);
-    overlay.showCard(true);
-
-    const { left, top } = card.position(overlay.card);
-    overlay.setCardPosition(left, top);
+    renderCard(data, result, partner, measuring);
   }
 
   /**
@@ -154,21 +163,25 @@
     return oneIsOuter ? [shrunk, rectTwo] : [rectOne, shrunk];
   }
 
-  function label(el, rect) {
+  /**
+   * @param {string} [letter] A or B. The letter is what tells the two boxes
+   *   apart when colour cannot, on a page that is itself blue or orange.
+   */
+  function label(el, rect, letter) {
     if (!el || !rect) return '';
     const { tag, id, classes } = styles.describe(el);
     const size = `${Math.round(rect.width)}x${Math.round(rect.height)}`;
-    return `${tag}${id}${classes}  ${size}`;
+    return `${letter ? `${letter}  ` : ''}${tag}${id}${classes}  ${size}`;
   }
 
   /** Rebuild the card only when something it displays actually changed. */
-  function renderCard(data, result, partner) {
+  function renderCard(data, result, partner, measuring) {
     const measurementKey = result
       ? `${result.kind}:${result.values.map((v) => Math.round(v.px * 10)).join(',')}`
       : '';
     // The partner's identity is part of the signature now that the card
     // describes it: two different elements can sit the same distance away.
-    const signature = `${state}|${idOf(data.el)}|${idOf(partner)}|${units.mode}|${measurementKey}|${Math.round(
+    const signature = `${state}|${measuring ? 'm' : ''}|${idOf(data.el)}|${idOf(partner)}|${units.mode}|${measurementKey}|${Math.round(
       data.box.width
     )}x${Math.round(data.box.height)}`;
     if (signature === cardSignature) return;
@@ -178,35 +191,27 @@
     // compare against, which is why it happens here and not in the paint loop.
     const pair = result && partner ? { a: data, b: styles.read(partner) } : null;
 
-    card.render(overlay.card, data, {
-      measurement: result,
-      pair,
-      state,
-      onUnitChange: () => {
-        cardSignature = '';
-      },
-      onClose: () => disarm(true),
-    });
+    card.render(data, { measurement: result, pair, state, measuring });
   }
 
   // ------------------------------------------------------------ interactions
 
-  function onMove(x, y, deep) {
+  function onMove(x, y, mod) {
     cursor = { x, y };
-    const found = inspect.pick(x, y, deep);
+    // Select-through only applies while nothing is locked. Once A is, the
+    // same key means "measure", and re-picking under it would swap the
+    // element being measured the moment the key went down.
+    const found = inspect.pick(x, y, mod && state === 'armed');
     if (found && found !== hoverEl) hoverEl = found;
   }
 
-  function onPick(x, y) {
+  function onModifier(mod) {
+    modifier = mod;
+  }
+
+  function onPick(x, y, mod) {
     const target = hoverEl || inspect.pick(x, y);
     if (!target) return;
-
-    if (state === 'armed') {
-      elA = target;
-      elB = null;
-      setState('lockedA');
-      return;
-    }
 
     if (state === 'lockedA') {
       // Clicking the locked element again releases it.
@@ -215,13 +220,22 @@
         setState('armed');
         return;
       }
-      elB = target;
-      setState('lockedAB');
-      return;
+      // With the modifier held the click keeps the measurement on screen.
+      if (mod) {
+        elB = target;
+        setState('lockedAB');
+        // They have now done the whole flow once; the steps can go.
+        if (!prefs.get('onboarded')) prefs.set('onboarded', true);
+        return;
+      }
     }
 
-    // A third click starts a fresh measurement from whatever was clicked,
-    // which is the fastest flow when checking a row of elements in turn.
+    // Otherwise a click selects, the way it does everywhere else: from
+    // nothing, from another selection, or from a kept measurement.
+    select(target);
+  }
+
+  function select(target) {
     elA = target;
     elB = null;
     setState('lockedA');
@@ -245,12 +259,16 @@
     lastMeasureKey = '';
   }
 
+  /**
+   * Esc clears the selection and nothing else. It used to exit the tool on a
+   * second press, so one press too many threw the whole session away. Closing
+   * is the panel's close button or the toolbar icon.
+   * @returns {boolean} whether there was anything to clear
+   */
   function onEscape() {
-    if (state === 'lockedAB' || state === 'lockedA') {
-      reset();
-      return;
-    }
-    disarm(true);
+    if (state !== 'lockedAB' && state !== 'lockedA') return false;
+    reset();
+    return true;
   }
 
   function onLeave() {
@@ -288,9 +306,18 @@
     DT.tokens?.invalidate();
 
     overlay.mount();
-    card.attachResizer(overlay.resizer, overlay.card);
+    card.mount({
+      onChange: () => {
+        cardSignature = '';
+        lastMeasureKey = '';
+      },
+      onClose: () => disarm(true),
+      onClear: reset,
+      onSelect: select,
+    });
+    modifier = false;
     setState('armed');
-    unbind = inspect.bind({ onMove, onPick, onWalk, onEscape, onLeave, onCycleUnits });
+    unbind = inspect.bind({ onMove, onPick, onWalk, onEscape, onLeave, onCycleUnits, onModifier });
     window.addEventListener('resize', onResize);
     if (!rafId) rafId = requestAnimationFrame(paint);
   }

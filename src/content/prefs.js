@@ -1,8 +1,9 @@
 /**
- * Persisted preferences: unit, card theme, pinned position, card size.
+ * Persisted preferences: unit, theme, which edge the panel docks to, which
+ * sections are folded, and whether the first-run steps have been seen.
  *
  * One storage key, loaded once when the tool is armed, written back with a
- * short debounce so a drag or a resize does not hammer storage.
+ * short debounce.
  */
 (() => {
   const DT = (window.__designtool = window.__designtool || {});
@@ -11,10 +12,12 @@
   const DEFAULTS = {
     unit: 'px',
     theme: 'dark',
-    /** {left, top} once the user has placed the card themselves, else null */
-    pin: null,
-    /** {width, height} once the user has resized it, else null */
-    size: null,
+    /** 'right' or 'left': the edge the panel docks to */
+    side: 'right',
+    /** { [sectionTitle]: true } for each section the user has folded */
+    folds: {},
+    /** true once a measurement has been kept, or the steps were dismissed */
+    onboarded: false,
   };
 
   let state = { ...DEFAULTS };

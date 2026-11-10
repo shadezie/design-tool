@@ -38,8 +38,8 @@ into any page until you click the toolbar icon or press the shortcut, and Chrome
 grants access only to that one tab, only for that visit. Install shows no "read
 your data on all websites" warning.
 
-It makes no network requests. It stores your unit, theme, card position and card
-size, locally, and nothing else.
+It makes no network requests. It stores your unit, theme, which edge the panel
+docks to and which sections you folded, locally, and nothing else.
 
 ## Install
 
@@ -59,34 +59,46 @@ extension card, refresh the page you are testing.
 
 | Action | What happens |
 | --- | --- |
-| Toolbar icon, or `Option+Shift+I` (`Alt+Shift+I` on Windows) | Arms inspect mode, badge reads `ON` |
-| Hover | The card reads typography, spacing, layout and fill for whatever is under the cursor |
+| Toolbar icon, or `Option+Shift+I` (`Alt+Shift+I` on Windows) | Opens the panel and arms inspect mode, badge reads `ON` |
+| Hover | The panel reads typography, spacing, layout and fill for whatever is under the cursor |
 | Click an element | Locks it as **A**, blue |
-| Hover another | Live measurement between A and it |
-| Click again | Freezes it as **B**, amber |
-| Click a third element | Starts a new measurement from that one |
-| Hold `Cmd` / `Ctrl` while hovering | Reaches past overlays to the most specific element under the cursor |
-| `Alt` + scroll, or `[` / `]` | Walks up and down the DOM |
+| Hold `Cmd` / `Ctrl` and hover another | Shows the gap between A and it, live |
+| `Cmd` / `Ctrl` + click | Keeps that measurement on screen, the second element becomes **B**, amber |
+| Click another element, no key held | Selects it as the new A |
+| Hold `Cmd` / `Ctrl` with nothing locked | Reaches past overlays to the most specific element under the cursor |
+| `Alt` + scroll, `[` / `]`, or the trail in the panel | Walks up and down the DOM |
 | `U` | Cycles px / rem / em |
 | Click any value | Copies it |
-| `Esc` | Clears the measurement. `Esc` again exits |
+| `Esc`, or **Clear** in the panel | Clears the selection |
+| ✕ in the panel, or the toolbar icon again | Closes the tool |
 
 While inspect mode is armed the page does not receive clicks, so you can measure
 a nav link without navigating away.
 
-### The card
+Measurements wait for the key on purpose. Showing a dimension line on every
+hover after locking A covered the page in numbers while you were only moving the
+mouse. Without the key, hovering shows a dashed outline of what a click would
+select and nothing else.
 
-It sits in the top-right corner and stays there. It does not follow the cursor
-and it does not change corners as you hover.
+### The panel
+
+A side panel docked to the right edge, full height, there from the moment the
+tool is on. It does not float, follow the cursor or change size.
 
 | Control | What it does |
 | --- | --- |
-| Grip, top left | Drag to place the card anywhere. Double-click to send it home |
-| Corner handle | Drag to resize, 260 to 640 wide |
+| px / rem / em | Units, everywhere at once |
+| Dock icon | Moves the panel to the other edge, to reach what is under it |
 | Sun / moon | Light or dark |
-| ✕ | Stops the tool, same as `Esc` `Esc` |
+| ✕ | Closes the tool |
+| Section titles | Fold a section. Folded sections stay folded |
+| Trail under the selection | Click an ancestor to select it |
+| Footer | Says what the next click does, with a Clear button |
 
-Position, size and theme persist across pages.
+The first time, the panel opens with three steps explaining the flow. They go
+away once you have kept a measurement, or when you dismiss them.
+
+Edge, theme, unit and folds persist across pages.
 
 ## Reaching the element you actually want
 
@@ -99,14 +111,16 @@ instead of on what you are looking at.
   outright. You are never pointing at something invisible.
 - One that does paint, like a faint scrim, is still the topmost thing, so
   **hold `Cmd` (macOS) or `Ctrl`** to reach the most specific element under the
-  cursor. Same idea as selecting through a group in Figma.
+  cursor. Same idea as selecting through a group in Figma. This applies while
+  nothing is locked; once A is locked the same key measures instead, and the
+  trail or `Alt` + scroll does the fine picking.
 - `Alt` + scroll then walks up and down from wherever you landed.
 
 ## Design tokens
 
 ![A colour reported as --ink, with the hex underneath](docs/readme/font-size.png)
 
-If the page is built on CSS custom properties, the card names the token rather
+If the page is built on CSS custom properties, the panel names the token rather
 than the value it resolved to: `--color-brand` instead of `#2A51FD`, with the
 hex still shown underneath. Click the name to copy `var(--color-brand)`, click
 the hex to copy `#2A51FD`.
@@ -127,7 +141,7 @@ shown as before.
 
 ![An image reported with its format, ratio and asset scale](docs/readme/image-video-tag.png)
 
-Hover an image or video and the card says which it is, what format it is being
+Hover an image or video and the panel says which it is, what format it is being
 served in, and how the asset compares to the box it is drawn in.
 
 - **Format** comes from `currentSrc`, the file the browser actually chose out of
@@ -160,11 +174,16 @@ as their on-page highlights: the type spec for text, width and height for a box.
 
 ## Known limits
 
+- **The panel sits on the page.** Whatever is under it cannot be hovered until
+  you flip it to the other edge. Device frames, where the page gets its own
+  stage beside the panel, are the next release.
+- **Screenshots in this README** predate the side panel and show the old
+  floating card.
 - **Iframes.** The tool runs inside each frame independently. Measuring an
   element in the page against one inside an iframe is not supported.
 - **Highlight badges** show rendered size in px whatever the unit toggle says.
-  The card is the source of truth for converted values.
-- **Strict CSP sites** may refuse the bundled fonts, and the card falls back to
+  The panel is the source of truth for converted values.
+- **Strict CSP sites** may refuse the bundled fonts, and the panel falls back to
   system fonts. Everything else still works.
 - **Canvas and WebGL** are inspected as the element that contains them; there
   is no way to reach inside what they draw.
@@ -178,7 +197,7 @@ npm to run the tests.
 
 ```bash
 npm install         # Playwright plus the Chromium it drives, for the tests only
-npm test            # manifest checks, geometry units, then the browser suite
+npm test            # manifest, geometry and contrast checks, then the browser suite
 npm run test:unit   # geometry only, runs in a second, no browser
 npm run package     # builds dist/design-tool-<version>.zip for the Web Store
 npm run dev         # builds ./dev/, a side-by-side copy for local testing
@@ -222,6 +241,9 @@ The mouse moves in small steps rather than teleporting. A scripted click jumps
 straight to its target, which is the one way a human never approaches anything,
 and it let an unreachable card ship once already.
 
+Under Playwright's headless Chromium the tests hold `Control`, since that is the
+modifier on the platform they run on.
+
 ## Layout
 
 ```
@@ -235,15 +257,16 @@ src/content/
   tokens.js                design token names for computed values
   measure.js               gap geometry, pure functions
   overlay.js               closed shadow root, highlights, dimension lines
-  card.js                  the card
+  card.js                  the panel's contents
   spacing-box.js           the margin/border/padding diagram
-  prefs.js                 persisted unit, theme, position, size
+  prefs.js                 persisted unit, theme, dock edge, folds
 src/ui/overlay-styles.js   all injected CSS, as a string
 src/icons/icon.svg         icon source, exported from Figma
 src/fonts/                 the two brand typefaces, with their OFL licences
 test/fixture.html          a page with known-correct values to check against
 test/verify.mjs            end-to-end checks in a real Chromium
 test/measure.test.mjs      geometry unit tests, no browser
+test/contrast.test.mjs     holds the palette to its contrast floors, no browser
 test/manifest.test.mjs     keeps the shipped manifest minimal
 test/build-test-extension.mjs  patched copy the browser suite drives
 test/package.mjs           builds the Web Store zip
