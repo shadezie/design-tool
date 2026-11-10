@@ -32,10 +32,12 @@ const demo = fs
 
 const server = http
   .createServer((req, res) => {
+    // An asset that never arrives, so the page's load event never fires.
+    if (req.url.startsWith('/hang')) return;
     const headers = { 'content-type': 'text/html; charset=utf-8' };
     if (req.url.startsWith('/deny')) headers['x-frame-options'] = 'DENY';
     res.writeHead(200, headers);
-    res.end(demo);
+    res.end(req.url.startsWith('/heavy') ? demo.replace('</body>', '<img src="/hang" alt=""></body>') : demo);
   })
   .listen(0);
 const ORIGIN = `http://localhost:${server.address().port}`;
@@ -278,11 +280,26 @@ await page.screenshot({ path: `${OUT}/stage-blocked.png` });
 await toggle(false);
 await page.waitForTimeout(300);
 
+// ---- a page that is slow, not refusing -------------------------------------
+// A media-heavy page can take longer to finish loading than any timeout. The
+// stage used to wait for that and then report the site as refusing to be
+// framed. It must take the document as soon as it is readable.
+await page.goto(`${ORIGIN}/heavy`, { waitUntil: 'commit' });
+await page.waitForTimeout(600);
+await toggle(true);
+await page.waitForTimeout(1500);
+check('a page still loading its media is framed anyway', (await ask('mode')) === 'arena' && (await ask('count', '.notice')) === 0);
+await glide(await point('#hero-title', 120, 24));
+check('and can be inspected before it finishes loading', (await ask('text')).includes('h1#hero-title'));
+await toggle(false);
+await page.waitForTimeout(300);
+
 // Chrome logs its own line when it refuses a frame. That one is expected.
 const unexpected = errors.filter((e) => !/X-Frame-Options|Refused to display|frame-ancestors/i.test(e));
 check('no console errors', unexpected.length === 0, unexpected.join(' | '));
 
 await ctx.close();
+server.closeAllConnections?.();
 server.close();
 console.log(failures.length ? `\n${failures.length} FAILED` : '\nall checks passed');
 process.exit(failures.length ? 1 : 0);

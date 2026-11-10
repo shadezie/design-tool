@@ -24,8 +24,8 @@
   };
   const MIN = 240;
   const MAX = 3840;
-  /** How long a frame gets to produce a readable document. */
-  const LOAD_TIMEOUT = 10000;
+  /** How long a frame gets to start answering at all. */
+  const LOAD_TIMEOUT = 20000;
 
   const STROKE =
     'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -40,12 +40,16 @@
 
   const BLOCKED =
     'This site does not allow device preview, so you are inspecting it in place at your window size.';
+  const SLOW =
+    'This page did not load into the stage in time, so you are inspecting it in place at your window size.';
   const NOT_WEB = 'Device sizes need a page served over http or https. Inspecting this one in place.';
 
   let nodes = null;
   let callbacks = null;
   let size = { cls: 'fit', w: 0, h: 0 };
   let timer = 0;
+  let poll = 0;
+  let currentDoc = null;
   let everLoaded = false;
   let pausedMedia = [];
   let priorOverflow = null;
@@ -234,7 +238,10 @@
 
   function teardown() {
     clearTimeout(timer);
+    clearInterval(poll);
     timer = 0;
+    poll = 0;
+    currentDoc = null;
     window.removeEventListener('resize', layout);
     if (nodes) {
       nodes.stage.remove();
@@ -250,29 +257,34 @@
     callbacks?.onTarget(window, document, { notice, framed: false });
   }
 
-  function onLoad() {
-    if (!nodes) return;
-    clearTimeout(timer);
-    const { frame } = nodes;
-
-    // A refused frame holds an error page from another origin: asking for its
-    // document either throws or hands back nothing.
+  /**
+   * What the frame holds right now.
+   *
+   * - A refused frame holds an error page from another origin: asking for its
+   *   document throws or hands back nothing.
+   * - A frame that has not got a response yet still holds about:blank.
+   * - Anything else is the page.
+   * @returns {Document|'refused'|'pending'}
+   */
+  function frameState() {
     let doc = null;
     try {
-      doc = frame.contentDocument;
+      doc = nodes.frame.contentDocument;
     } catch {
       doc = null;
     }
-    const readable =
-      !!doc?.documentElement && !!doc.body && /^https?:$/.test(doc.location?.protocol || '');
-    if (!readable) {
-      fallBack(BLOCKED);
-      return;
-    }
+    if (!doc) return 'refused';
+    if (doc.body && /^https?:$/.test(doc.location?.protocol || '')) return doc;
+    return 'pending';
+  }
 
-    // Fires again on every navigation inside the frame, which is what lets
-    // Interact mode follow a link and carry on inspecting the next page.
-    const win = frame.contentWindow;
+  /** Hand a document to the inspector, once per document. */
+  function adopt(doc) {
+    if (doc === currentDoc) return;
+    currentDoc = doc;
+    clearTimeout(timer);
+    clearInterval(poll);
+    const win = nodes.frame.contentWindow;
     if (!everLoaded) {
       everLoaded = true;
       // Pick up where the original page was scrolled to.
@@ -285,6 +297,40 @@
     win.addEventListener('resize', () => callbacks?.onResize());
     nodes.stage.removeAttribute('data-loading');
     callbacks.onTarget(win, doc, { notice: null, framed: true });
+  }
+
+  /**
+   * Watch for the page rather than wait for its load event.
+   *
+   * `load` waits for every image, video and font. On a media-heavy page that
+   * can take longer than any sensible timeout, and the stage used to give up
+   * and report the site as refusing to be framed when it was only slow. The
+   * document is readable long before that, so it is taken as soon as it
+   * exists, and a refusal is recognised as soon as it happens.
+   */
+  function watch() {
+    if (!nodes) return;
+    const state = frameState();
+    if (state === 'refused') fallBack(BLOCKED);
+    else if (state !== 'pending') adopt(state);
+  }
+
+  /**
+   * Fires when a document finishes loading, including every later navigation
+   * inside the frame, which is what lets Interact mode follow a link.
+   */
+  function onLoad() {
+    if (!nodes) return;
+    const state = frameState();
+    // Finished loading and still not a web page: refused, or a dead end.
+    if (state === 'refused' || state === 'pending') {
+      fallBack(BLOCKED);
+      return;
+    }
+    adopt(state);
+    // Stylesheets that arrived after the document was adopted may define
+    // tokens the first pass could not see.
+    callbacks?.onResize();
   }
 
   DT.stage = {
@@ -337,7 +383,8 @@
       layout();
       window.addEventListener('resize', layout);
 
-      timer = setTimeout(() => fallBack(BLOCKED), LOAD_TIMEOUT);
+      timer = setTimeout(() => fallBack(SLOW), LOAD_TIMEOUT);
+      poll = setInterval(watch, 100);
     },
 
     close() {
