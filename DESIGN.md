@@ -193,9 +193,10 @@ above it: device, size, zoom. It is laid out at its true size and scaled with a
 transform, so the page inside always sees real pixels and the marks drawn on it
 scale with it.
 
-On the frame's right edge, at mid height, a width handle: two short lines in
-`--text-3`, full contrast on hover and `--accent-text` while dragging. Arrow
-keys move it by 10px, or 50 with Shift.
+Two size handles hang off the frame: one at the middle of the right edge for
+width, one at the middle of the bottom edge for height. Each is two short
+lines in `--text-3`, full contrast on hover and `--accent-text` while dragging.
+Arrow keys move them by 10px, or 50 with Shift.
 
 The stage opens in Interact, so the page works as it did a moment ago, and
 Inspect is chosen. The framed page's scrollbar is hidden, because a desktop
@@ -271,7 +272,9 @@ missing alt text.
 Every number and colour is click-to-copy, and each one is a focusable control
 that answers Enter and Space. Hover shows `--hover` with a 3px spread, so the
 hit target reads as larger than the text. On copy it flashes `--ok` for 420ms.
-Cursor is `copy`.
+The cursor is an arrow with a copy glyph, drawn in white with a dark outline
+so it reads on both themes. The platform's `copy` cursor is an arrow with a
+green plus, which reads as "add"; it stays as the fallback.
 
 ### Spacing box
 
@@ -337,7 +340,7 @@ What moves is decided by how often it happens.
 | --- | --- | --- |
 | Panel opens | A few times a session | Slides out of its edge. 220ms, `--ease-drawer` |
 | Device or size is picked | Occasional | A settle: opacity from 0.6 and scale from 0.985, 180ms, `--ease-out`. The frame itself jumps to its new size, because tweening the width would reflow the page at every width in between |
-| Frame is rotated | Occasional | Turns a quarter into place. 280ms, `--ease-in-out` |
+| Frame is rotated | Occasional | Turns a quarter into place. 280ms, `--ease-in-out`. The caption and handles step out for the turn and fade back in 140ms when it lands: they belong to edges that are mid-air |
 | Frame edge is dragged | Direct manipulation | **Never animates.** It follows the pointer |
 | Panel closes | A few times a session | Slides back into the same edge. 160ms, `--ease-out` |
 | Panel flips sides | Rare | Travels the distance it moved. 220ms, `--ease-in-out` |

@@ -104,7 +104,7 @@ at 100%.
 | Size list | The other sizes for that device, including 2560 × 1440 under Large |
 | Width × height | Type any size from 240 to 3840 |
 | Rotate | Swaps width and height |
-| Handle on the frame's right edge | Drag to set the width, as in DevTools. Arrow keys nudge it |
+| Handles on the frame's right and bottom edges | Drag to set the width or the height, as in DevTools. Arrow keys nudge them |
 | Percentage, right | How far the page is scaled down to fit. Measurements are always the page's real pixels |
 
 A framed page has a real viewport, so media queries, `vh` units and container
