@@ -406,6 +406,29 @@ check('and can be inspected before it finishes loading', (await ask('text')).inc
 await toggle(false);
 await page.waitForTimeout(300);
 
+// ---- closing a tab while the tool is on ------------------------------------
+// The worker cleaned up by clearing the badge on a tab that no longer existed,
+// which Chrome reports as an uncaught error on the extension's card.
+const workerErrors = [];
+sw.on('console', (m) => m.type() === 'error' && workerErrors.push(m.text()));
+const extra = await ctx.newPage();
+await extra.goto(`${ORIGIN}/`);
+await extra.bringToFront();
+await extra.waitForTimeout(400);
+await toolbar();
+await extra.waitForTimeout(800);
+const rejections = await sw.evaluate(() => {
+  self.__rejections = [];
+  self.addEventListener('unhandledrejection', (e) => self.__rejections.push(String(e.reason)));
+  return true;
+});
+await extra.close();
+await page.bringToFront();
+await page.waitForTimeout(600);
+const leaked = await sw.evaluate(() => self.__rejections);
+check('closing a tab with the tool on raises no error in the worker', rejections && leaked.length === 0 && workerErrors.length === 0, [...leaked, ...workerErrors].join(' | '));
+check('and its rule is cleaned up', (await framingRules()) === 0);
+
 // Chrome logs its own line when it refuses a frame. That one is expected.
 const unexpected = errors.filter((e) => !/X-Frame-Options|Refused to display|frame-ancestors/i.test(e));
 check('no console errors', unexpected.length === 0, unexpected.join(' | '));

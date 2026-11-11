@@ -58,8 +58,10 @@ async function setArmed(tabId, value) {
 }
 
 function setBadge(tabId, armed) {
-  chrome.action.setBadgeText({ tabId, text: armed ? 'ON' : '' });
-  chrome.action.setBadgeBackgroundColor({ tabId, color: '#4F8CFF' });
+  // Both reject when the tab is gone, which is exactly when a closed tab is
+  // being cleaned up. Nothing to do about it and nothing lost.
+  chrome.action.setBadgeText({ tabId, text: armed ? 'ON' : '' }).catch(() => {});
+  chrome.action.setBadgeBackgroundColor({ tabId, color: '#4F8CFF' }).catch(() => {});
 }
 
 async function send(tabId, message) {
@@ -216,4 +218,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   if (state === null || state === 'idle') await setOff(tabId);
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => setOff(tabId));
+// A closed tab has no badge left to clear: only our record and its rule.
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await setArmed(tabId, false);
+  await forbidFraming(tabId);
+});
