@@ -835,30 +835,57 @@
     return node;
   }
 
+  // Option on a Mac keyboard, Alt everywhere else. Same key, and calling it
+  // Alt on a Mac sends people looking for a key that is not labelled that.
+  const ALT_KEY = IS_MAC ? 'Option' : 'Alt';
+
+  /**
+   * Grouped by when they apply. Cmd or Ctrl does two different jobs depending
+   * on whether anything is selected, and a flat list showed the same keys
+   * twice with no way to tell why.
+   */
   const SHORTCUTS = [
-    [['Click'], 'Lock an element as A'],
-    [[MOD_KEY, 'hover'], 'With A locked: show the gap'],
-    [[MOD_KEY, 'Click'], 'Keep the measurement'],
-    [[MOD_KEY, 'hover'], 'Nothing locked: select through overlays'],
-    [['Alt', 'scroll'], 'Walk the DOM tree'],
-    [['U'], 'Cycle px / rem / em'],
-    [['Esc'], 'Clear the selection'],
+    [
+      'Before you select',
+      [
+        [['Click'], 'Select an element as A'],
+        [[MOD_KEY, 'hover'], 'Reach an element under an overlay'],
+      ],
+    ],
+    [
+      'With A selected',
+      [
+        [[MOD_KEY, 'hover'], 'Show the gap to another element'],
+        [[MOD_KEY, 'Click'], 'Keep that measurement on screen'],
+        [['Esc'], 'Clear the selection'],
+      ],
+    ],
+    [
+      'Any time',
+      [
+        [[ALT_KEY, 'scroll'], 'Step out to the parent, or back in'],
+        [['U'], 'Switch px / rem / em'],
+      ],
+    ],
   ];
 
   /** Reference material, folded by default: learned once, then in the way. */
   function shortcuts() {
     const { node, body } = section('Shortcuts', { closed: true });
     const list = el('div', 'sc');
-    for (const [keys, meaning] of SHORTCUTS) {
-      const line = el('div', 'sc-row');
-      const chips = el('div', 'sc-keys');
-      keys.forEach((key, index) => {
-        if (index) chips.appendChild(el('span', 'sc-plus', '+'));
-        chips.appendChild(el('kbd', null, key));
-      });
-      line.appendChild(chips);
-      line.appendChild(el('div', 'sc-meaning', meaning));
-      list.appendChild(line);
+    for (const [group, rows] of SHORTCUTS) {
+      list.appendChild(el('div', 'sc-group', group));
+      for (const [keys, meaning] of rows) {
+        const line = el('div', 'sc-row');
+        const chips = el('div', 'sc-keys');
+        keys.forEach((key, index) => {
+          if (index) chips.appendChild(el('span', 'sc-plus', '+'));
+          chips.appendChild(el('kbd', null, key));
+        });
+        line.appendChild(chips);
+        line.appendChild(el('div', 'sc-meaning', meaning));
+        list.appendChild(line);
+      }
     }
     body.appendChild(list);
     return node;

@@ -77,7 +77,7 @@ extension card, refresh the page you are testing.
 | `Cmd` / `Ctrl` + click | Keeps that measurement on screen, the second element becomes **B**, amber |
 | Click another element, no key held | Selects it as the new A |
 | Hold `Cmd` / `Ctrl` with nothing locked | Reaches past overlays to the most specific element under the cursor |
-| `Alt` + scroll, `[` / `]`, or the trail in the panel | Walks up and down the DOM |
+| `Option` + scroll (`Alt` on Windows), `[` / `]`, or the trail in the panel | Steps out to the parent element, or back in |
 | `U` | Cycles px / rem / em |
 | Click any value | Copies it |
 | `Esc`, or **Clear** in the panel | Clears the selection |

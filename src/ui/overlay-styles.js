@@ -302,7 +302,9 @@
   max-width: 190px;
   padding: 0 10px;
 }
-.pick-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Its own line height: the field's is 1, and with the clipping this needs for
+   the ellipsis that cut the tail off every g and y. */
+.pick-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.5; }
 .pick::after {
   content: "";
   flex: none;
@@ -976,6 +978,13 @@ kbd {
 /* ---------- shortcuts ---------- */
 
 .sc { display: grid; gap: 6px; }
+/* Shortcuts are grouped by when they apply, because one key does two jobs. */
+.sc-group {
+  margin-top: 8px;
+  color: var(--text-3);
+  font: 400 11.5px/1.4 var(--sans);
+}
+.sc-group:first-child { margin-top: 0; }
 .sc-row {
   display: grid;
   grid-template-columns: 112px 1fr;
