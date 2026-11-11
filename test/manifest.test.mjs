@@ -25,10 +25,12 @@ check('has a version', /^\d+\.\d+\.\d+$/.test(manifest.version || ''), manifest.
 // The whole point of the activeTab design: no broad host access, nothing
 // injected until the user asks for it.
 check('asks for no host permissions', manifest.host_permissions === undefined);
+check('asks for no optional host permissions either', manifest.optional_host_permissions === undefined);
 check('declares no always-on content script', manifest.content_scripts === undefined);
 check(
   'permissions stay minimal',
-  JSON.stringify(manifest.permissions) === JSON.stringify(['activeTab', 'scripting', 'storage']),
+  JSON.stringify(manifest.permissions) ===
+    JSON.stringify(['activeTab', 'scripting', 'storage', 'declarativeNetRequestWithHostAccess']),
   JSON.stringify(manifest.permissions)
 );
 

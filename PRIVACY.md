@@ -37,10 +37,18 @@ developer has no access to it, no way to see it, and no copy of it.
 
 ## Permissions
 
-Design Tool requests three permissions: `activeTab`, `scripting`, and
-`storage`. It does not request a host permission, so it has no standing
-access to any site — only the tab you explicitly activate it on, for that
-one visit. See the [README](https://github.com/shadezie/design-tool) for how
+Design Tool requests four permissions: `activeTab`, `scripting`, `storage`
+and `declarativeNetRequestWithHostAccess`. It does not request a host
+permission, so it has no standing access to any site — only the tab you
+explicitly activate it on, for that one visit.
+
+The last of those is used for one thing. To show a page at a device size, the
+tool loads that page into a frame beside its panel, and some sites send a
+header forbidding that. While the tool is on in a tab, it removes that header
+from the tab's own frames of the site you are already on, so the frame can
+load. It does not read, record or send any request or response, the rule
+applies to no other tab and no other site, and it is deleted when you turn the
+tool off. See the [README](https://github.com/shadezie/design-tool) for how
 each permission is used.
 
 ## Open source

@@ -6,7 +6,8 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "declarativeNetRequestWithHostAccess"
   ],
   "background": {
     "service_worker": "src/background.js"

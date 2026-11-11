@@ -60,6 +60,18 @@ const toggle = (armed) =>
     return chrome.tabs.sendMessage(tab.id, { type: 'designtool:toggle', armed }, { frameId: 0 });
   }, armed);
 
+/**
+ * Turn the tool on or off the way the toolbar icon does: through the worker's
+ * own toggle, which is what installs the rule that lets a site be framed.
+ */
+const toolbar = () =>
+  sw.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    // eslint-disable-next-line no-undef
+    await toggle(tab);
+  });
+const framingRules = () => sw.evaluate(async () => (await chrome.declarativeNetRequest.getSessionRules()).length);
+
 /** Ask the tool a question from inside the content script's world. */
 const ask = (kind, arg) =>
   sw.evaluate(
@@ -265,7 +277,9 @@ check('the stage reopens', (await ask('mode')) === 'arena');
 await toggle(false);
 await page.waitForTimeout(400);
 
-// ---- a page that refuses to be framed -------------------------------------
+// ---- a page that refuses to be framed, with no rule to help ---------------
+// Turned on by message here, which skips the worker and so skips the rule:
+// this is what a refusal the tool cannot lift looks like.
 await page.goto(`${ORIGIN}/deny`);
 await page.waitForTimeout(400);
 await toggle(true);
@@ -279,6 +293,26 @@ check('the page keeps its scrolling in place', await page.evaluate(() => documen
 await page.screenshot({ path: `${OUT}/stage-blocked.png` });
 await toggle(false);
 await page.waitForTimeout(300);
+
+// ---- the same page, turned on from the toolbar ----------------------------
+// The worker lifts the framing headers for this tab's own frames before the
+// stage asks for one, so a site that says DENY can still be put on the stage.
+await page.goto(`${ORIGIN}/deny`);
+await page.waitForTimeout(400);
+await toolbar();
+await page.waitForTimeout(1500);
+check('from the toolbar, a page that says DENY is framed', (await ask('mode')) === 'arena' && (await ask('count', '.notice')) === 0);
+check('one rule exists while the tool is on', (await framingRules()) === 1);
+await press('[data-device="mobile"]');
+check('and device sizes work on it', (await ask('frame')).innerWidth === 390);
+check('the page itself still refuses frames from anyone else', (await page.evaluate(() => fetch(location.href).then((r) => r.headers.get('x-frame-options')))) === 'DENY');
+
+// The second click has to turn it off. The worker used to keep its own idea
+// of on and off, which a loading frame could knock out of step.
+await toolbar();
+await page.waitForTimeout(500);
+check('a second toolbar click turns it off', await page.evaluate(() => !document.getElementById('designtool-root')));
+check('and the rule is removed with it', (await framingRules()) === 0);
 
 // ---- a page that is slow, not refusing -------------------------------------
 // A media-heavy page can take longer to finish loading than any timeout. The

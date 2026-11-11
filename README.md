@@ -33,16 +33,24 @@ Built for designers doing design QA, not for reading CSS.
 
 ## Permissions
 
-`activeTab`, `scripting` and `storage`. That is all.
+`activeTab`, `scripting`, `storage` and `declarativeNetRequestWithHostAccess`.
 
 There is no host permission and no always-on content script. Nothing is injected
 into any page until you click the toolbar icon or press the shortcut, and Chrome
 grants access only to that one tab, only for that visit. Install shows no "read
 your data on all websites" warning.
 
-It makes no network requests. It stores your unit, theme, which edge the panel
-docks to, which sections you folded and the stage size you last used, locally,
-and nothing else.
+The fourth permission exists for the stage. Many sites send a header that
+forbids showing them inside a frame, and the stage is a frame. While the tool is
+on in a tab, one rule removes `X-Frame-Options` and `Content-Security-Policy`
+from that tab's own frames of the site you are on, and it is deleted when the
+tool is turned off. It touches no other tab and no other site, and the page in
+the tab itself keeps its headers: only the copy on the stage loads without
+them.
+
+It makes no network requests of its own. It stores your unit, theme, which edge
+the panel docks to, which sections you folded and the stage size you last used,
+locally, and nothing else.
 
 ## Install
 
@@ -106,10 +114,11 @@ The page loads a second time to get onto the stage, so anything held only in
 memory starts over: an open modal, a half-filled form. Your login carries
 across. Use Interact to get back to the state you want to inspect.
 
-**Some sites refuse to be framed.** GitHub and most banking and admin tools send
-headers that forbid it. There the tool says so and inspects the page in place,
-with the panel docked over it and device sizes unavailable. The same goes for
-local `file://` pages.
+**Some sites refuse to be framed.** They send a header that forbids it. The
+tool removes that header for the stage's own frame, so most of them still work.
+Where that is not enough, and on local `file://` pages, the tool says so and
+inspects the page in place, with the panel docked over it and device sizes
+unavailable.
 
 ### The panel
 
@@ -213,6 +222,10 @@ as their on-page highlights: the type spec for text, width and height for a box.
   every use. DevTools throttling works alongside this tool.
 - **The page loads twice on the stage.** The original stays underneath, paused
   and covered, so analytics will count a second page view.
+- **The copy on the stage loads without the site's Content-Security-Policy.**
+  That header can only be removed whole, and it is where the framing rule
+  lives. A page that relies on its CSP to block one of its own scripts could
+  behave differently on the stage than in the tab.
 - **Where a page cannot be framed, the panel sits on it.** Whatever is under
   the panel cannot be hovered until you flip it to the other edge.
 - **Screenshots in this README** predate the side panel and show the old

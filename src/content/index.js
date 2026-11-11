@@ -400,7 +400,7 @@
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'designtool:ping' && window !== window.top) return false;
     if (message?.type === 'designtool:ping') {
-      sendResponse({ ok: true });
+      sendResponse({ ok: true, state });
       return false;
     }
     // The stage frames this page inside itself, and the frame must not start

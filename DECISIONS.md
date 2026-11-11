@@ -550,6 +550,37 @@ available through that permission. DevTools does it well and works alongside
 this tool. A separate build with the debugger permission remains an option if
 slow-network QA turns out to matter enough.
 
+### A fourth permission, to lift framing headers
+
+Reported from the first real site it was tried on: `X-Frame-Options: DENY`, so
+the stage stayed empty and the tool fell back to the panel sitting on the page.
+Another device-preview extension worked on the same site, because it removes
+that header. Refusing to do the same would have meant the headline feature not
+working on a large share of real sites.
+
+So there is now one `declarativeNetRequest` session rule, as narrow as the API
+allows: the one tab, sub-frames only, requests to the tab's own host only,
+added when the tool is turned on and removed when it is turned off. It removes
+`X-Frame-Options` and `Content-Security-Policy`. The second is removed whole
+because that is all the API can do, and `frame-ancestors` lives inside it.
+
+`declarativeNetRequestWithHostAccess` rather than the plain permission, so the
+rule only applies where the user has granted access by activating the tool.
+Whether the `activeTab` grant alone satisfies that could not be tested in the
+headless suite, which cannot click the toolbar, and has to be confirmed in a
+real browser. If it does not, the next step is a per-site prompt.
+
+The slow-page fix made on the way to this diagnosis was a real bug, but it was
+not this one. The lesson was to read the response headers before theorising.
+
+### The worker asks the page whether the tool is on
+
+The worker kept its own record of which tabs were on and cleared it when a tab
+reported loading. The stage loads a frame, and a frame loading can look like
+that. A record knocked out of step makes the next toolbar click send "turn on"
+to a tool that is already on, which looks like a dead button. The click now
+asks the content script for its state and toggles from the answer.
+
 ### What is deliberately not here yet
 
 - Dragging the frame's edge to resize it.

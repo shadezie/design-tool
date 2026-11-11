@@ -140,11 +140,27 @@ the only way the tool reaches the page, and it runs only on the tab covered by
 the activeTab grant.
 ```
 
+`declarativeNetRequestWithHostAccess`
+
+```
+The extension shows the page the user is inspecting at mobile, tablet and
+desktop sizes by loading it into a frame beside the inspector. Many sites send
+X-Frame-Options or a frame-ancestors policy that forbids framing, which leaves
+that frame empty. While the user has the extension turned on in a tab, one
+session rule removes those two response headers from sub-frame requests in that
+tab to the tab's own host, so the page can be framed by itself. The rule is
+scoped to that tab, that host and sub-frames only, and is removed when the user
+turns the extension off. No request or response is read, stored or transmitted.
+The WithHostAccess variant is used so the rule only ever applies where the user
+has granted access by activating the extension on that tab.
+```
+
 `storage`
 
 ```
 Stores the user's own display preferences locally: the unit (px, rem or em),
-the light or dark theme, and the position and size of the inspector panel. No
+the light or dark theme, which edge the panel docks to, and the stage size last
+used. No
 browsing data is stored and nothing is transmitted.
 ```
 
