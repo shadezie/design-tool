@@ -242,8 +242,10 @@ const rot = await ask('rect', '.rotate');
 await page.mouse.click(rot.cx, rot.cy);
 await page.waitForTimeout(60);
 check('rotating animates the frame', (await ask('animations')) > 0);
+check('the caption and handles step out for the turn', (await ask('count', '.stage[data-turning]')) === 1);
 await page.screenshot({ path: `${OUT}/stage-rotating.png` });
 await page.waitForTimeout(350);
+check('and come back when it lands', (await ask('count', '.stage[data-turning]')) === 0);
 const turned = await ask('frame');
 check('rotate swaps width and height', turned.innerWidth === 844 && turned.innerHeight === 390, JSON.stringify(turned));
 await press('.rotate');
@@ -261,6 +263,17 @@ const dragged = await ask('frame');
 const expected = 390 + 100 / zoomNow;
 check('dragging the edge handle resizes the frame', Math.abs(dragged.innerWidth - expected) < 12, `${dragged.innerWidth}, expected about ${Math.round(expected)}`);
 check('and the size list reads Custom', (await ask('selected')) === 'Custom');
+
+// The same on the bottom edge, for height.
+const tall = await ask('frame');
+const gripY = await ask('rect', '.grip-y');
+await page.mouse.move(gripY.cx, gripY.cy, { steps: 5 });
+await page.mouse.down();
+await page.mouse.move(gripY.cx, gripY.cy - 60, { steps: 10 });
+await page.mouse.up();
+await page.waitForTimeout(300);
+const shorter = await ask('frame');
+check('dragging the bottom handle changes the height', shorter.innerHeight < tall.innerHeight - 80 && shorter.innerWidth === tall.innerWidth, `${tall.innerHeight} -> ${shorter.innerHeight}`);
 await page.screenshot({ path: `${OUT}/stage-grip.png` });
 
 await press('[data-device="large"]');

@@ -116,7 +116,7 @@
     const isFit = size.cls === 'fit';
     // Room around the frame, and above it for the caption.
     const availW = Math.max(MIN, view.clientWidth - 56);
-    const availH = Math.max(MIN, view.clientHeight - 72);
+    const availH = Math.max(MIN, view.clientHeight - 84);
     if (isFit) {
       size.w = availW;
       size.h = availH;
@@ -143,7 +143,8 @@
 
     width.value = w;
     height.value = h;
-    nodes.grip.setAttribute('aria-valuenow', String(w));
+    nodes.gripX.setAttribute('aria-valuenow', String(w));
+    nodes.gripY.setAttribute('aria-valuenow', String(h));
     rotate.disabled = isFit;
     zoomRead.textContent = percent;
     caption.textContent = '';
@@ -217,7 +218,17 @@
       // The frame is already in its new orientation. Turned back a quarter it
       // has exactly the outline it had a moment ago, so playing that turn
       // forward reads as the device being rotated in the hand.
-      overlay.motion(nodes?.turn, 'turn');
+      //
+      // The caption and the handles belong to the frame's edges, and those
+      // edges are mid-air for the length of the turn. Left where they were,
+      // they sat on empty canvas beside a spinning frame. They step out for
+      // the turn and come back once it has landed.
+      const stageNode = nodes?.stage;
+      const turning = overlay.motion(nodes?.turn, 'turn');
+      if (turning && stageNode) {
+        stageNode.setAttribute('data-turning', '');
+        turning.finished.catch(() => {}).then(() => stageNode.removeAttribute('data-turning'));
+      }
     }, ICONS.rotate);
 
     const zoomRead = el('span', 'read');
@@ -246,29 +257,32 @@
   }
 
   /**
-   * The handle on the frame's right edge: drag to set the width, the way
-   * DevTools does it.
+   * A handle on the frame's edge: drag to set that dimension, the way
+   * DevTools does it. One on the right edge for width, one on the bottom for
+   * height.
    *
-   * The frame is centred, so its edge moves half as far as its width changes:
-   * the width takes twice the pointer's travel, divided by the zoom, and the
-   * handle stays under the cursor. Pointer capture keeps the drag alive over
-   * the iframe, which would otherwise swallow every move.
+   * The frame is centred on both axes, so an edge moves half as far as the
+   * dimension changes: the size takes twice the pointer's travel, divided by
+   * the zoom, and the handle stays under the cursor. Pointer capture keeps the
+   * drag alive over the iframe, which would otherwise swallow every move.
+   * @param {'w'|'h'} key
    */
-  function resizeGrip() {
-    const grip = el('div', 'grip-x');
+  function resizeGrip(key) {
+    const wide = key === 'w';
+    const grip = el('div', wide ? 'grip grip-x' : 'grip grip-y');
     grip.title = 'Drag to resize';
     grip.tabIndex = 0;
     grip.setAttribute('role', 'separator');
-    grip.setAttribute('aria-orientation', 'vertical');
-    grip.setAttribute('aria-label', 'Frame width');
+    grip.setAttribute('aria-orientation', wide ? 'vertical' : 'horizontal');
+    grip.setAttribute('aria-label', wide ? 'Frame width' : 'Frame height');
     let from = null;
 
-    const setWidth = (next) => {
-      const width = clampSize(next, size.w);
-      if (width === size.w) return;
-      // Dragging from Fit means "I want this width", so leave Fit.
-      if (size.cls === 'fit') size.cls = classFor(width);
-      size.w = width;
+    const setSize = (next) => {
+      const value = clampSize(next, size[key]);
+      if (value === size[key]) return;
+      // Dragging from Fit means "I want this size", so leave Fit.
+      if (size.cls === 'fit') size.cls = classFor(wide ? value : size.w);
+      size[key] = value;
       layout();
     };
 
@@ -276,16 +290,22 @@
       if (event.button !== 0) return;
       event.preventDefault();
       const box = nodes.frame.getBoundingClientRect();
-      from = { x: event.clientX, w: size.w, zoom: box.width / nodes.frame.offsetWidth || 1 };
+      from = {
+        at: wide ? event.clientX : event.clientY,
+        size: size[key],
+        zoom: box.width / nodes.frame.offsetWidth || 1,
+      };
       try {
         grip.setPointerCapture(event.pointerId);
       } catch {
         // Without capture the drag ends when the pointer crosses the frame.
       }
-      nodes.stage.setAttribute('data-dragging', '');
+      nodes.stage.setAttribute('data-dragging', key);
     });
     grip.addEventListener('pointermove', (event) => {
-      if (from) setWidth(from.w + ((event.clientX - from.x) * 2) / from.zoom);
+      if (!from) return;
+      const travel = (wide ? event.clientX : event.clientY) - from.at;
+      setSize(from.size + (travel * 2) / from.zoom);
     });
     const end = () => {
       if (!from) return;
@@ -299,8 +319,10 @@
 
     grip.addEventListener('keydown', (event) => {
       const step = event.shiftKey ? 50 : 10;
-      if (event.key === 'ArrowRight') setWidth(size.w + step);
-      else if (event.key === 'ArrowLeft') setWidth(size.w - step);
+      const more = wide ? 'ArrowRight' : 'ArrowDown';
+      const less = wide ? 'ArrowLeft' : 'ArrowUp';
+      if (event.key === more) setSize(size[key] + step);
+      else if (event.key === less) setSize(size[key] - step);
       else return;
       event.preventDefault();
       prefs.set('device', { ...size });
@@ -473,12 +495,13 @@
       // iframe's own transform is its zoom.
       const turn = el('div', 'turn');
       turn.appendChild(frame);
-      const grip = resizeGrip();
-      fit.append(caption, turn, grip);
+      const gripX = resizeGrip('w');
+      const gripY = resizeGrip('h');
+      fit.append(caption, turn, gripX, gripY);
       view.appendChild(fit);
       stage.append(controls.bar, view);
 
-      nodes = { stage, view, fit, frame, caption, turn, grip, ...controls };
+      nodes = { stage, view, fit, frame, caption, turn, gripX, gripY, ...controls };
       overlay.setMode('arena');
       quietOriginal();
       overlay.layer.insertBefore(stage, overlay.panel);

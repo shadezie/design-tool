@@ -360,41 +360,62 @@ input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .fit { position: relative; }
 .turn { position: absolute; inset: 0; }
 
-/* The width handle, on the frame's right edge. Small and quiet until it is
-   wanted: two short lines, as DevTools draws its own. */
-.grip-x {
+/* The size handles: right edge for width, bottom edge for height. Small and
+   quiet until wanted: two short lines, as DevTools draws its own. */
+.grip {
   position: absolute;
+  border-radius: 6px;
+  touch-action: none;
+  transition: opacity 140ms ease;
+}
+.grip::before,
+.grip::after {
+  content: "";
+  position: absolute;
+  border-radius: 1px;
+  background: var(--text-3);
+  transition: background var(--press) ease;
+}
+.grip-x {
   top: 50%;
   left: 100%;
   width: 16px;
   height: 44px;
   margin-top: -22px;
   cursor: ew-resize;
-  touch-action: none;
-  border-radius: 6px;
 }
-.grip-x::before,
-.grip-x::after {
-  content: "";
-  position: absolute;
-  top: 14px;
-  width: 1.5px;
-  height: 16px;
-  border-radius: 1px;
-  background: var(--text-3);
-  transition: background var(--press) ease;
-}
+.grip-x::before, .grip-x::after { top: 14px; width: 1.5px; height: 16px; }
 .grip-x::before { left: 6px; }
 .grip-x::after { left: 9.5px; }
-@media (hover: hover) and (pointer: fine) {
-  .grip-x:hover::before,
-  .grip-x:hover::after { background: var(--text); }
+.grip-y {
+  left: 50%;
+  top: 100%;
+  width: 44px;
+  height: 16px;
+  margin-left: -22px;
+  cursor: ns-resize;
 }
-.stage[data-dragging] .grip-x::before,
-.stage[data-dragging] .grip-x::after { background: var(--accent-text); }
+.grip-y::before, .grip-y::after { left: 14px; height: 1.5px; width: 16px; }
+.grip-y::before { top: 6px; }
+.grip-y::after { top: 9.5px; }
+@media (hover: hover) and (pointer: fine) {
+  .grip:hover::before,
+  .grip:hover::after { background: var(--text); }
+}
+.stage[data-dragging="w"] .grip-x::before,
+.stage[data-dragging="w"] .grip-x::after,
+.stage[data-dragging="h"] .grip-y::before,
+.stage[data-dragging="h"] .grip-y::after { background: var(--accent-text); }
+.stage[data-dragging="w"] { cursor: ew-resize; }
+.stage[data-dragging="h"] { cursor: ns-resize; }
+.stage[data-dragging] { user-select: none; }
+/* During a rotation the frame's edges are mid-air, so what hangs off them
+   steps out and comes back when the turn lands. */
+.caption { transition: opacity 140ms ease; }
+.stage[data-turning] .grip,
+.stage[data-turning] .caption { opacity: 0; transition-duration: 0ms; }
 /* While dragging, the page must not take the pointer or select its text. */
 .stage[data-dragging] .frame { pointer-events: none; }
-.stage[data-dragging] { cursor: ew-resize; user-select: none; }
 .caption {
   position: absolute;
   left: 0;
@@ -804,8 +825,13 @@ input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 /* Copyable values are real controls: focusable, with a hit area that extends
    past the glyphs. The confirmation is the "right" colour and is quick: it is
    feedback, not an event. */
+/* The cursor over a copyable value: an arrow with a copy glyph. The platform's
+   own copy cursor is an arrow with a green plus, which reads as "add". It
+   stays as the fallback for a page whose CSP will not load an image cursor. */
 .copy {
   cursor: copy;
+  cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='28'%20viewBox='0%200%2028%2028'%3E%3Cpath%20d='M3%202v15.5l4.1-3.7%202.7%206.1%202.5-1.1-2.7-6%205.5-.3z'%20fill='%23fff'%20stroke='%23111'%20stroke-width='1.3'%20stroke-linejoin='round'/%3E%3Crect%20x='18.6'%20y='18.6'%20width='8'%20height='8'%20rx='2'%20fill='%23fff'%20stroke='%23111'%20stroke-width='1.3'/%3E%3Crect%20x='14.6'%20y='14.6'%20width='8'%20height='8'%20rx='2'%20fill='%23fff'%20stroke='%23111'%20stroke-width='1.3'/%3E%3C/svg%3E") 3 2, copy;
+  cursor: -webkit-image-set(url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='28'%20viewBox='0%200%2028%2028'%3E%3Cpath%20d='M3%202v15.5l4.1-3.7%202.7%206.1%202.5-1.1-2.7-6%205.5-.3z'%20fill='%23fff'%20stroke='%23111'%20stroke-width='1.3'%20stroke-linejoin='round'/%3E%3Crect%20x='18.6'%20y='18.6'%20width='8'%20height='8'%20rx='2'%20fill='%23fff'%20stroke='%23111'%20stroke-width='1.3'/%3E%3Crect%20x='14.6'%20y='14.6'%20width='8'%20height='8'%20rx='2'%20fill='%23fff'%20stroke='%23111'%20stroke-width='1.3'/%3E%3C/svg%3E") 1x, url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='56'%20viewBox='0%200%2028%2028'%3E%3Cpath%20d='M3%202v15.5l4.1-3.7%202.7%206.1%202.5-1.1-2.7-6%205.5-.3z'%20fill='%23fff'%20stroke='%23111'%20stroke-width='1.3'%20stroke-linejoin='round'/%3E%3Crect%20x='18.6'%20y='18.6'%20width='8'%20height='8'%20rx='2'%20fill='%23fff'%20stroke='%23111'%20stroke-width='1.3'/%3E%3Crect%20x='14.6'%20y='14.6'%20width='8'%20height='8'%20rx='2'%20fill='%23fff'%20stroke='%23111'%20stroke-width='1.3'/%3E%3C/svg%3E") 2x) 3 2, copy;
   border-radius: 4px;
   transition: background var(--press) ease, color var(--press) ease,
     box-shadow var(--press) ease;

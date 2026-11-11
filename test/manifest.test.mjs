@@ -5,6 +5,7 @@
  *   node test/manifest.test.mjs
  */
 import fs from 'node:fs';
+import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONTENT_FILES } from './build-test-extension.mjs';
@@ -43,6 +44,18 @@ const workerSource = fs.readFileSync(path.join(ROOT, background), 'utf8');
 for (const file of CONTENT_FILES) {
   check(`worker injects ${file}`, workerSource.includes(file));
   check(`${file} exists`, fs.existsSync(path.join(ROOT, file)));
+  // A file that does not parse takes every file after it down with it, and
+  // the stylesheet is one long template string: a stray backtick in a CSS
+  // comment is all it takes.
+  let parses = true;
+  let why = '';
+  try {
+    new vm.Script(fs.readFileSync(path.join(ROOT, file), 'utf8'), { filename: file });
+  } catch (err) {
+    parses = false;
+    why = err.message;
+  }
+  check(`${file} parses`, parses, why);
 }
 
 for (const size of ['16', '32', '48', '128']) {
