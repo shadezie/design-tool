@@ -193,6 +193,14 @@ above it: device, size, zoom. It is laid out at its true size and scaled with a
 transform, so the page inside always sees real pixels and the marks drawn on it
 scale with it.
 
+On the frame's right edge, at mid height, a width handle: two short lines in
+`--text-3`, full contrast on hover and `--accent-text` while dragging. Arrow
+keys move it by 10px, or 50 with Shift.
+
+The stage opens in Interact, so the page works as it did a moment ago, and
+Inspect is chosen. The framed page's scrollbar is hidden, because a desktop
+scrollbar takes about 15px out of a 390px frame and a phone's takes none.
+
 Segmented controls here and in the panel are the same component: a well with a
 raised chip for the active choice.
 
@@ -328,7 +336,9 @@ What moves is decided by how often it happens.
 | Moment | Frequency | Motion |
 | --- | --- | --- |
 | Panel opens | A few times a session | Slides out of its edge. 220ms, `--ease-drawer` |
-| Device or size changes | Occasional | **No animation.** A frame that tweens through every width in between makes the page reflow at each one |
+| Device or size is picked | Occasional | A settle: opacity from 0.6 and scale from 0.985, 180ms, `--ease-out`. The frame itself jumps to its new size, because tweening the width would reflow the page at every width in between |
+| Frame is rotated | Occasional | Turns a quarter into place. 280ms, `--ease-in-out` |
+| Frame edge is dragged | Direct manipulation | **Never animates.** It follows the pointer |
 | Panel closes | A few times a session | Slides back into the same edge. 160ms, `--ease-out` |
 | Panel flips sides | Rare | Travels the distance it moved. 220ms, `--ease-in-out` |
 | A section unfolds | Occasional | Fades in and settles 4px. 160ms, `--ease-out` |

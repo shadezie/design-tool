@@ -254,7 +254,12 @@
   color: var(--text);
   font: 400 12.5px/1.45 var(--sans);
   font-variant-numeric: tabular-nums;
+  container-type: inline-size;
 }
+/* A narrow window sheds the controls that have another way in: the size list
+   first, then the typed fields, which the drag handle covers. */
+@container (max-width: 700px) { .size-list { display: none; } }
+@container (max-width: 520px) { .wh, .tb .read { display: none; } }
 .layer[data-side="left"] .stage { left: var(--panel-w); right: 0; }
 .stage :focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
 
@@ -347,10 +352,49 @@ input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   display: grid;
   place-items: center;
   padding-top: 16px;
+  /* A frame mid-turn is taller than it is wide for a moment. */
+  overflow: hidden;
   background: radial-gradient(circle, var(--dots) 1px, transparent 1.2px) 0 0 / 18px 18px;
 }
 
 .fit { position: relative; }
+.turn { position: absolute; inset: 0; }
+
+/* The width handle, on the frame's right edge. Small and quiet until it is
+   wanted: two short lines, as DevTools draws its own. */
+.grip-x {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  width: 16px;
+  height: 44px;
+  margin-top: -22px;
+  cursor: ew-resize;
+  touch-action: none;
+  border-radius: 6px;
+}
+.grip-x::before,
+.grip-x::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  width: 1.5px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--text-3);
+  transition: background var(--press) ease;
+}
+.grip-x::before { left: 6px; }
+.grip-x::after { left: 9.5px; }
+@media (hover: hover) and (pointer: fine) {
+  .grip-x:hover::before,
+  .grip-x:hover::after { background: var(--text); }
+}
+.stage[data-dragging] .grip-x::before,
+.stage[data-dragging] .grip-x::after { background: var(--accent-text); }
+/* While dragging, the page must not take the pointer or select its text. */
+.stage[data-dragging] .frame { pointer-events: none; }
+.stage[data-dragging] { cursor: ew-resize; user-select: none; }
 .caption {
   position: absolute;
   left: 0;

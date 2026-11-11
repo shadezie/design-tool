@@ -184,7 +184,7 @@
      * lingers in the stylesheet to fire again when the body is rebuilt. With
      * reduced motion the movement goes and a short fade stays.
      *
-     * @param {'enter'|'exit'|'flip'|'unfold'} kind
+     * @param {'enter'|'exit'|'flip'|'unfold'|'turn'|'settle'} kind
      * @param {{dx?: number}} [opts] flip: how far the panel just jumped
      */
     motion(node, kind, opts = {}) {
@@ -202,12 +202,18 @@
         // Already at the other edge; play back the distance it jumped.
         flip: [[{ transform: `translateX(${opts.dx || 0}px)` }, { transform: 'none' }], 220, curve('--ease-in-out', 'ease-in-out')],
         unfold: [[{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], 160, curve('--ease-out', 'ease-out')],
+        // The stage's frame turning a quarter, as a device does in the hand.
+        turn: [[{ transform: 'rotate(-90deg)' }, { transform: 'none' }], 280, curve('--ease-in-out', 'ease-in-out')],
+        // A new size arriving. Barely there: this happens while comparing.
+        settle: [[{ opacity: 0.6, transform: 'scale(0.985)' }, { opacity: 1, transform: 'none' }], 180, curve('--ease-out', 'ease-out')],
       };
       const fades = {
         enter: [{ opacity: 0 }, { opacity: 1 }],
         exit: [{ opacity: 1 }, { opacity: 0 }],
         flip: [{ opacity: 0 }, { opacity: 1 }],
         unfold: [{ opacity: 0 }, { opacity: 1 }],
+        turn: [{ opacity: 0.4 }, { opacity: 1 }],
+        settle: [{ opacity: 0.6 }, { opacity: 1 }],
       };
       const [frames, duration, easing] = plans[kind];
       try {

@@ -357,6 +357,9 @@
     units.refreshRoot();
     DT.tokens?.invalidate();
     loading = false;
+    // On the stage the page starts out usable, and inspecting is asked for.
+    // In place there is no switch, so there it inspects straight away.
+    paused = !!info.interact;
     notice = info.notice;
     setState('armed');
     unbind = inspect.bind({

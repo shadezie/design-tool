@@ -435,16 +435,17 @@
       // Why device sizes are missing, when they are. Said once, at the top.
       if (opts.notice) body.appendChild(el('p', 'notice', opts.notice));
 
-      if (!prefs.get('onboarded')) body.appendChild(guide(opts.state, !!data));
+      // The steps describe inspecting. They wait until that is what is happening.
+      if (!prefs.get('onboarded') && opts.mode !== 'interact') body.appendChild(guide(opts.state, !!data));
 
       if (!data) {
-        if (prefs.get('onboarded')) {
+        if (prefs.get('onboarded') || opts.mode === 'interact') {
           body.appendChild(
             el(
               'p',
               'empty',
               opts.mode === 'interact'
-                ? 'The page has your clicks. Switch back to Inspect to read styles.'
+                ? 'You are using the page as normal. Switch to Inspect to read styles and measure.'
                 : 'Hover anything on the page to read its styles.'
             )
           );
@@ -596,7 +597,7 @@
     } else if (key === 'loading') {
       text.append('Loading the page into the stage.');
     } else if (key === 'interact') {
-      text.append('Interact mode. The page gets your clicks.');
+      text.append('Interact mode. Switch to Inspect to read styles.');
     } else if (key === 'lockedAB') {
       text.append('Measurement kept. Click any element to start again.');
     } else {

@@ -102,6 +102,16 @@ const ask = (kind, arg) =>
             frame.contentWindow.location.href = arg;
             return true;
           }
+          if (kind === 'scrollbar') {
+            const doc = frame.contentDocument;
+            return {
+              styled: !!doc.getElementById('designtool-frame'),
+              // With no scrollbar taking room, the layout width is the frame's width.
+              gutter: frame.contentWindow.innerWidth - doc.documentElement.clientWidth,
+            };
+          }
+          if (kind === 'pressed') return root.querySelector('.seg [aria-pressed="true"]')?.textContent;
+          if (kind === 'animations') return root.querySelector('.turn')?.getAnimations().length ?? 0;
           if (kind === 'frame') {
             if (!frame?.contentWindow) return null;
             const win = frame.contentWindow;
@@ -181,6 +191,17 @@ check('the panel raises no notice when framing works', (await ask('count', '.not
 check('the original page is locked while covered', await page.evaluate(() => document.documentElement.style.overflow === 'hidden'));
 await page.screenshot({ path: `${OUT}/stage-fit-dark.png` });
 
+// It opens in Interact: the page works as usual until inspecting is asked for.
+check('the stage opens in Interact', (await ask('pressed')) === 'Interact' && (await ask('text')).includes('Interact mode'));
+const early = await point('#card-a', 80, 6);
+await glide(early);
+await page.mouse.click(early.x, early.y);
+await page.waitForTimeout(250);
+check('and a click there selects nothing', !(await ask('text')).includes('div#card-a'));
+const bar = await ask('scrollbar');
+check('the framed page has no scrollbar taking width', bar.styled && bar.gutter === 0, JSON.stringify(bar));
+await press('.mode-inspect');
+
 // ---- inspecting through the frame -----------------------------------------
 await glide(await point('#hero-title', 120, 24));
 check('hovering inside the frame reads the element', (await ask('text')).includes('h1#hero-title'));
@@ -217,10 +238,30 @@ check('Mobile gives the page a 390px viewport', mobile.innerWidth === 390 && mob
 check('the page answers with its mobile breakpoint', mobile.titleSize === '28px', mobile.titleSize);
 await page.screenshot({ path: `${OUT}/stage-mobile.png` });
 
-await press('.rotate');
+const rot = await ask('rect', '.rotate');
+await page.mouse.click(rot.cx, rot.cy);
+await page.waitForTimeout(60);
+check('rotating animates the frame', (await ask('animations')) > 0);
+await page.screenshot({ path: `${OUT}/stage-rotating.png` });
+await page.waitForTimeout(350);
 const turned = await ask('frame');
 check('rotate swaps width and height', turned.innerWidth === 844 && turned.innerHeight === 390, JSON.stringify(turned));
 await press('.rotate');
+
+// The handle on the frame's edge. The frame is centred, so the width takes
+// twice the pointer's travel, divided by the zoom.
+const grip = await ask('rect', '.grip-x');
+const zoomNow = (await ask('frame')).zoom;
+await page.mouse.move(grip.cx, grip.cy, { steps: 5 });
+await page.mouse.down();
+await page.mouse.move(grip.cx + 50, grip.cy, { steps: 10 });
+await page.mouse.up();
+await page.waitForTimeout(300);
+const dragged = await ask('frame');
+const expected = 390 + 100 / zoomNow;
+check('dragging the edge handle resizes the frame', Math.abs(dragged.innerWidth - expected) < 12, `${dragged.innerWidth}, expected about ${Math.round(expected)}`);
+check('and the size list reads Custom', (await ask('selected')) === 'Custom');
+await page.screenshot({ path: `${OUT}/stage-grip.png` });
 
 await press('[data-device="large"]');
 const sizes = await ask('options');
@@ -323,6 +364,7 @@ await page.waitForTimeout(600);
 await toggle(true);
 await page.waitForTimeout(1500);
 check('a page still loading its media is framed anyway', (await ask('mode')) === 'arena' && (await ask('count', '.notice')) === 0);
+await press('.mode-inspect');
 await glide(await point('#hero-title', 120, 24));
 check('and can be inspected before it finishes loading', (await ask('text')).includes('h1#hero-title'));
 await toggle(false);

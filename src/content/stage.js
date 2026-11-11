@@ -49,6 +49,9 @@
   let size = { cls: 'fit', w: 0, h: 0 };
   let timer = 0;
   let poll = 0;
+  // Interact is where the stage opens: the page works as usual until the user
+  // asks to inspect it. Kept across navigations inside the frame.
+  let interact = true;
   let currentDoc = null;
   let everLoaded = false;
   let pausedMedia = [];
@@ -88,6 +91,11 @@
     size.cls = cls;
     if (cls !== 'fit') [size.w, size.h] = DEVICES[cls].sizes[index];
     commit();
+    // A small settle, so a new size reads as a change and not a glitch. It is
+    // opacity and a 1.5% scale on the wrapper: the frame itself jumps straight
+    // to its new size, because tweening the width would reflow the page at
+    // every width in between.
+    overlay.motion(nodes?.turn, 'settle');
   }
 
   function commit() {
@@ -135,6 +143,7 @@
 
     width.value = w;
     height.value = h;
+    nodes.grip.setAttribute('aria-valuenow', String(w));
     rotate.disabled = isFit;
     zoomRead.textContent = percent;
     caption.textContent = '';
@@ -148,7 +157,8 @@
     const modes = el('div', 'seg');
     modes.setAttribute('role', 'group');
     modes.setAttribute('aria-label', 'Mode');
-    const setMode = (interact) => {
+    const setMode = (next) => {
+      interact = next;
       inspectBtn.setAttribute('aria-pressed', String(!interact));
       interactBtn.setAttribute('aria-pressed', String(interact));
       callbacks.onMode(interact);
@@ -157,9 +167,9 @@
     const interactBtn = button('mode-interact', 'Interact', () => setMode(true));
     inspectBtn.title = 'Hover and click to inspect';
     interactBtn.title = 'Use the page normally: open menus, follow links';
-    inspectBtn.setAttribute('aria-pressed', 'true');
-    interactBtn.setAttribute('aria-pressed', 'false');
-    modes.append(inspectBtn, interactBtn);
+    inspectBtn.setAttribute('aria-pressed', String(!interact));
+    interactBtn.setAttribute('aria-pressed', String(interact));
+    modes.append(interactBtn, inspectBtn);
 
     const devices = el('div', 'seg dev');
     devices.setAttribute('role', 'group');
@@ -204,6 +214,10 @@
     const rotate = button('ibtn rotate', 'Rotate', () => {
       [size.w, size.h] = [size.h, size.w];
       commit();
+      // The frame is already in its new orientation. Turned back a quarter it
+      // has exactly the outline it had a moment ago, so playing that turn
+      // forward reads as the device being rotated in the hand.
+      overlay.motion(nodes?.turn, 'turn');
     }, ICONS.rotate);
 
     const zoomRead = el('span', 'read');
@@ -211,6 +225,87 @@
 
     bar.append(modes, devices, list, dims, rotate, el('span', 'grow'), zoomRead);
     return { bar, list, width, height, rotate, zoomRead, deviceButtons };
+  }
+
+  /**
+   * A desktop scrollbar takes about 15px out of the frame, so a 390px frame
+   * lays the page out at 375. Phones draw theirs over the content. Hiding it
+   * gives the page the width the toolbar says it has; the wheel and trackpad
+   * still scroll.
+   */
+  function hideScrollbar(doc) {
+    try {
+      const style = doc.createElement('style');
+      style.id = 'designtool-frame';
+      style.textContent =
+        'html{scrollbar-width:none!important}html::-webkit-scrollbar,body::-webkit-scrollbar{display:none!important}';
+      (doc.head || doc.documentElement).appendChild(style);
+    } catch {
+      // A document that will not take a style element keeps its scrollbar.
+    }
+  }
+
+  /**
+   * The handle on the frame's right edge: drag to set the width, the way
+   * DevTools does it.
+   *
+   * The frame is centred, so its edge moves half as far as its width changes:
+   * the width takes twice the pointer's travel, divided by the zoom, and the
+   * handle stays under the cursor. Pointer capture keeps the drag alive over
+   * the iframe, which would otherwise swallow every move.
+   */
+  function resizeGrip() {
+    const grip = el('div', 'grip-x');
+    grip.title = 'Drag to resize';
+    grip.tabIndex = 0;
+    grip.setAttribute('role', 'separator');
+    grip.setAttribute('aria-orientation', 'vertical');
+    grip.setAttribute('aria-label', 'Frame width');
+    let from = null;
+
+    const setWidth = (next) => {
+      const width = clampSize(next, size.w);
+      if (width === size.w) return;
+      // Dragging from Fit means "I want this width", so leave Fit.
+      if (size.cls === 'fit') size.cls = classFor(width);
+      size.w = width;
+      layout();
+    };
+
+    grip.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      const box = nodes.frame.getBoundingClientRect();
+      from = { x: event.clientX, w: size.w, zoom: box.width / nodes.frame.offsetWidth || 1 };
+      try {
+        grip.setPointerCapture(event.pointerId);
+      } catch {
+        // Without capture the drag ends when the pointer crosses the frame.
+      }
+      nodes.stage.setAttribute('data-dragging', '');
+    });
+    grip.addEventListener('pointermove', (event) => {
+      if (from) setWidth(from.w + ((event.clientX - from.x) * 2) / from.zoom);
+    });
+    const end = () => {
+      if (!from) return;
+      from = null;
+      nodes?.stage.removeAttribute('data-dragging');
+      prefs.set('device', { ...size });
+    };
+    grip.addEventListener('pointerup', end);
+    grip.addEventListener('pointercancel', end);
+    grip.addEventListener('lostpointercapture', end);
+
+    grip.addEventListener('keydown', (event) => {
+      const step = event.shiftKey ? 50 : 10;
+      if (event.key === 'ArrowRight') setWidth(size.w + step);
+      else if (event.key === 'ArrowLeft') setWidth(size.w - step);
+      else return;
+      event.preventDefault();
+      prefs.set('device', { ...size });
+    });
+    return grip;
   }
 
   /** The page under the stage keeps running. Quiet it while it is covered. */
@@ -254,7 +349,7 @@
   /** Give up on the frame and hand the top window back to the inspector. */
   function fallBack(notice) {
     teardown();
-    callbacks?.onTarget(window, document, { notice, framed: false });
+    callbacks?.onTarget(window, document, { notice, framed: false, interact: false });
   }
 
   /**
@@ -295,8 +390,9 @@
       }
     }
     win.addEventListener('resize', () => callbacks?.onResize());
+    hideScrollbar(doc);
     nodes.stage.removeAttribute('data-loading');
-    callbacks.onTarget(win, doc, { notice: null, framed: true });
+    callbacks.onTarget(win, doc, { notice: null, framed: true, interact });
   }
 
   /**
@@ -349,6 +445,7 @@
     open(cb) {
       callbacks = cb;
       everLoaded = false;
+      interact = true;
 
       if (!/^https?:$/.test(location.protocol)) {
         fallBack(NOT_WEB);
@@ -372,11 +469,16 @@
       // first, and that load event looks exactly like a refusal.
       frame.src = location.href;
       frame.addEventListener('load', onLoad);
-      fit.append(caption, frame);
+      // Rotation and the settle animate this wrapper, never the iframe: the
+      // iframe's own transform is its zoom.
+      const turn = el('div', 'turn');
+      turn.appendChild(frame);
+      const grip = resizeGrip();
+      fit.append(caption, turn, grip);
       view.appendChild(fit);
       stage.append(controls.bar, view);
 
-      nodes = { stage, view, fit, frame, caption, ...controls };
+      nodes = { stage, view, fit, frame, caption, turn, grip, ...controls };
       overlay.setMode('arena');
       quietOriginal();
       overlay.layer.insertBefore(stage, overlay.panel);

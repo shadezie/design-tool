@@ -99,11 +99,12 @@ at 100%.
 
 | Control | What it does |
 | --- | --- |
-| Inspect / Interact | Inspect is hover and click to read styles. Interact hands the page its clicks back, so you can open a menu or follow a link, then switch back and measure it |
+| Interact / Inspect | The stage opens in Interact, where the page works as normal: open a menu, follow a link. Switch to Inspect to hover and click for styles and measurements |
 | Device icons | Mobile 390, Tablet 768, Desktop 1440, Large desktop 1920, or Fit |
 | Size list | The other sizes for that device, including 2560 × 1440 under Large |
 | Width × height | Type any size from 240 to 3840 |
 | Rotate | Swaps width and height |
+| Handle on the frame's right edge | Drag to set the width, as in DevTools. Arrow keys nudge it |
 | Percentage, right | How far the page is scaled down to fit. Measurements are always the page's real pixels |
 
 A framed page has a real viewport, so media queries, `vh` units and container
