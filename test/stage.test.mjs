@@ -110,6 +110,14 @@ const ask = (kind, arg) =>
               gutter: frame.contentWindow.innerWidth - doc.documentElement.clientWidth,
             };
           }
+          if (kind === 'label') return root.querySelector('.pick-label')?.textContent;
+          if (kind === 'title') return overlay.panel.querySelector('.brand-name')?.textContent;
+          if (kind === 'toolbar') {
+            const bar = root.querySelector('.tb').getBoundingClientRect();
+            const mid = root.querySelector('.tb-mid').getBoundingClientRect();
+            const brand = root.querySelector('.tb-brand').getBoundingClientRect();
+            return { offCentre: Math.abs(mid.x + mid.width / 2 - (bar.x + bar.width / 2)), brandLeft: brand.x - bar.x, name: root.querySelector('.tb-name')?.textContent };
+          }
           if (kind === 'pressed') return root.querySelector('.seg [aria-pressed="true"]')?.textContent;
           if (kind === 'animations') return root.querySelector('.turn')?.getAnimations().length ?? 0;
           if (kind === 'frame') {
@@ -191,6 +199,12 @@ check('the panel raises no notice when framing works', (await ask('count', '.not
 check('the original page is locked while covered', await page.evaluate(() => document.documentElement.style.overflow === 'hidden'));
 await page.screenshot({ path: `${OUT}/stage-fit-dark.png` });
 
+// The toolbar: the name at the left edge, the controls centred in the stage.
+const tb = await ask('toolbar');
+check('the toolbar carries the name at its left edge', tb.name === 'Design Tool' && tb.brandLeft < 20, JSON.stringify(tb));
+check('and its controls are centred', tb.offCentre < 2, `${tb.offCentre}px off`);
+check('on the stage the panel is titled for what it holds', (await ask('title')) === 'Properties');
+
 // It opens in Interact: the page works as usual until inspecting is asked for.
 check('the stage opens in Interact', (await ask('pressed')) === 'Interact' && (await ask('text')).includes('Interact mode'));
 const early = await point('#card-a', 80, 6);
@@ -236,6 +250,14 @@ await press('[data-device="mobile"]');
 const mobile = await ask('frame');
 check('Mobile gives the page a 390px viewport', mobile.innerWidth === 390 && mobile.innerHeight === 844, JSON.stringify(mobile));
 check('the page answers with its mobile breakpoint', mobile.titleSize === '28px', mobile.titleSize);
+// Closed, the size control names the device. The dimensions are in the list.
+check('the closed size control shows only the device name', (await ask('label')) === 'iPhone 13 & 14', await ask('label'));
+check('while the list still shows each size', (await ask('selected')) === 'iPhone 13 & 14 · 390 × 844', await ask('selected'));
+// Several phones share a size, so the name has to come from what was picked.
+const seventeen = (await ask('options')).findIndex((o) => o.startsWith('iPhone 17 ·'));
+await pickSize(seventeen);
+check('a device that shares its size keeps its own name', (await ask('label')) === 'iPhone 17' && (await ask('frame')).innerWidth === 402, await ask('label'));
+await pickSize(0);
 await page.screenshot({ path: `${OUT}/stage-mobile.png` });
 
 const rot = await ask('rect', '.rotate');
@@ -339,6 +361,7 @@ await page.waitForTimeout(400);
 await toggle(true);
 await page.waitForTimeout(1500);
 check('a page that forbids framing is inspected in place', (await ask('mode')) === 'inplace' && (await ask('count', '.frame')) === 0);
+check('in place, the panel carries the product name', (await ask('title')) === 'Design Tool');
 check('the panel says why device sizes are missing', (await ask('text')).includes('does not allow device preview'));
 const title = await page.locator('#hero-title').boundingBox();
 await glide({ x: title.x + 120, y: title.y + 24 });

@@ -241,6 +241,9 @@
   background: var(--canvas);
 }
 .layer[data-mode="arena"] .panel { box-shadow: -1px 0 0 var(--line); }
+/* The product's name and mark are in the toolbar there; the panel is titled
+   for what it holds. */
+.layer[data-mode="arena"] .panel .brand-mark { display: none; }
 .layer[data-mode="arena"][data-side="left"] .panel { box-shadow: 1px 0 0 var(--line); }
 
 .stage {
@@ -258,24 +261,71 @@
 }
 /* A narrow window sheds the controls that have another way in: the size list
    first, then the typed fields, which the drag handle covers. */
-@container (max-width: 700px) { .size-list { display: none; } }
-@container (max-width: 520px) { .wh, .tb .read { display: none; } }
+@container (max-width: 980px) { .tb-name { display: none; } }
+@container (max-width: 760px) { .pick { display: none; } }
+@container (max-width: 580px) { .wh, .tb .read { display: none; } }
 .layer[data-side="left"] .stage { left: var(--panel-w); right: 0; }
 .stage :focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
 
 .tb {
   flex: none;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   height: 48px;
-  padding: 0 12px;
+  padding: 0 14px;
   background: var(--bg);
   border-bottom: 1px solid var(--line);
   overflow: hidden;
 }
-.tb .grow { flex: 1; }
-.tb .read { color: var(--text-2); font-size: 12px; white-space: nowrap; }
+.tb-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text);
+  font: 600 12.5px/1.4 var(--sans);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+.tb-mid { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tb .read { justify-self: end; color: var(--text-2); font-size: 12px; white-space: nowrap; }
+
+/* The size list: a label and a chevron, with the real select laid invisibly
+   over them so the platform's own list still opens. */
+.pick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 190px;
+  padding: 0 10px;
+}
+.pick-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick::after {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-top: -3px;
+  border-right: 1.5px solid var(--text-2);
+  border-bottom: 1.5px solid var(--text-2);
+  transform: rotate(45deg);
+}
+.pick select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font: 400 13px/1.4 var(--sans);
+}
+.pick[data-disabled] { color: var(--text-2); }
+.pick[data-disabled] select { cursor: default; }
+.pick[data-disabled]::after { opacity: 0.4; }
+.pick:focus-within { outline: 2px solid var(--accent-text); outline-offset: 1px; }
 
 .seg {
   flex: none;
@@ -320,8 +370,6 @@
   font: 500 12px/1 var(--sans);
   font-variant-numeric: tabular-nums;
 }
-select.field { max-width: 176px; padding: 0 8px; }
-select.field:disabled { color: var(--text-2); opacity: 1; }
 input.field { width: 56px; padding: 0 4px; text-align: center; appearance: textfield; }
 input.field::-webkit-outer-spin-button,
 input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

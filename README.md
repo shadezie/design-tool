@@ -101,7 +101,7 @@ at 100%.
 | --- | --- |
 | Interact / Inspect | The stage opens in Interact, where the page works as normal: open a menu, follow a link. Switch to Inspect to hover and click for styles and measurements |
 | Device icons | Mobile 390, Tablet 768, Desktop 1440, Large desktop 1920, or Fit |
-| Size list | The other sizes for that device, including 2560 × 1440 under Large |
+| Size list | The named sizes for that device, following Figma's frame presets: iPhones from SE to 18 Pro Max, Android, iPads, Surface, MacBooks, and 2560 × 1440 under Large. Closed, it shows the device name; the list shows each size |
 | Width × height | Type any size from 240 to 3840 |
 | Rotate | Swaps width and height |
 | Handles on the frame's right and bottom edges | Drag to set the width or the height, as in DevTools. Arrow keys nudge them |

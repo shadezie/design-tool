@@ -346,6 +346,8 @@
         setState('armed');
       },
     });
+    // While the stage is still loading it is already on screen, toolbar and all.
+    if (stage.active) card.setTitle('Properties');
   }
 
   /** Point the whole inspector at a window: listeners, marks, units, tokens. */
@@ -356,6 +358,7 @@
     overlay.attachMarks(doc);
     units.refreshRoot();
     DT.tokens?.invalidate();
+    card.setTitle(info.framed ? 'Properties' : 'Design Tool');
     loading = false;
     // On the stage the page starts out usable, and inspecting is asked for.
     // In place there is no switch, so there it inspects straight away.

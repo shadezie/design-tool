@@ -185,8 +185,15 @@ Dimension labels get a small `0 1px 4px` to stay readable over busy pages.
 ### Stage
 
 The page, framed, on a dotted canvas. One toolbar across the top, flush with
-the panel header, in this order: Inspect / Interact, the device icons and Fit,
-the size list, width × height, rotate, and the zoom at the far right.
+the panel header, in three columns: the product name at the left edge, the
+controls centred in the stage, and the zoom at the right edge. The controls in
+order: Interact / Inspect, the device icons and Fit, the size list, width ×
+height, rotate.
+
+The size list names the device and nothing else when closed. Its dimensions
+are already in the two fields beside it; the open list shows each size, which
+is when they are being compared. On the stage the panel is titled Properties,
+since the product name has moved to the toolbar; in place it keeps the name.
 
 The frame has a 10px radius, a hairline ring and a soft shadow, with a caption
 above it: device, size, zoom. It is laid out at its true size and scaled with a

@@ -15,11 +15,69 @@
   const DT = (window.__designtool = window.__designtool || {});
   const { prefs, overlay } = DT;
 
-  /** Device classes, default size first. [width, height, name] */
+  /**
+   * Device classes, default size first. [width, height, name]
+   *
+   * The names and sizes follow Figma's frame presets, since that is the list a
+   * designer already has in their head, plus a few common sizes it leaves out.
+   * Several phones share a size; the list keeps them all, because people look
+   * for the device by name.
+   */
   const DEVICES = {
-    mobile: { name: 'Mobile', sizes: [[390, 844, 'iPhone 15'], [360, 800, 'Android'], [430, 932, 'iPhone Pro Max']] },
-    tablet: { name: 'Tablet', sizes: [[768, 1024, 'iPad mini'], [820, 1180, 'iPad Air'], [1024, 1366, 'iPad Pro']] },
-    desktop: { name: 'Desktop', sizes: [[1440, 900, 'Laptop'], [1280, 800, 'Small laptop'], [1366, 768, 'HD']] },
+    mobile: {
+      name: 'Mobile',
+      sizes: [
+        [390, 844, 'iPhone 13 & 14'],
+        [466, 678, 'iPhone Duo, Closed'],
+        [951, 669, 'iPhone Duo, Open'],
+        [402, 874, 'iPhone 18 Pro'],
+        [440, 956, 'iPhone 18 Pro Max'],
+        [402, 874, 'iPhone 17'],
+        [402, 874, 'iPhone 16 & 17 Pro'],
+        [393, 852, 'iPhone 16'],
+        [440, 956, 'iPhone 16 & 17 Pro Max'],
+        [430, 932, 'iPhone 16 Plus'],
+        [420, 912, 'iPhone Air'],
+        [430, 932, 'iPhone 14 & 15 Pro Max'],
+        [393, 852, 'iPhone 14 & 15 Pro'],
+        [428, 926, 'iPhone 14 Plus'],
+        [375, 812, 'iPhone 13 mini'],
+        [414, 896, 'iPhone 11 Pro Max'],
+        [375, 667, 'iPhone 8'],
+        [320, 568, 'iPhone SE'],
+        [412, 917, 'Android Compact'],
+        [700, 840, 'Android Medium'],
+        [360, 800, 'Android Large'],
+        [360, 640, 'Android Small'],
+      ],
+    },
+    tablet: {
+      name: 'Tablet',
+      sizes: [
+        [768, 1024, 'iPad'],
+        [744, 1133, 'iPad mini 8.3'],
+        [820, 1180, 'iPad Air'],
+        [834, 1194, 'iPad Pro 11"'],
+        [1024, 1366, 'iPad Pro 12.9"'],
+        [1440, 960, 'Surface Pro 8'],
+        [1368, 912, 'Surface Pro 4'],
+        [1280, 800, 'Android Expanded'],
+      ],
+    },
+    desktop: {
+      name: 'Desktop',
+      sizes: [
+        [1440, 900, 'Laptop'],
+        [1280, 832, 'MacBook Air'],
+        [1512, 982, 'MacBook Pro 14"'],
+        [1728, 1117, 'MacBook Pro 16"'],
+        [1440, 1024, 'Desktop'],
+        [1500, 1000, 'Surface Book'],
+        [1152, 700, 'MacBook'],
+        [1280, 720, 'iMac'],
+        [1366, 768, 'HD'],
+      ],
+    },
     large: { name: 'Large desktop', sizes: [[1920, 1080, 'Full HD'], [2560, 1440, 'QHD']] },
   };
   const MIN = 240;
@@ -46,7 +104,9 @@
 
   let nodes = null;
   let callbacks = null;
-  let size = { cls: 'fit', w: 0, h: 0 };
+  // index is which named size in the class was picked. Several devices share
+  // a size, so the dimensions alone cannot say which name to show.
+  let size = { cls: 'fit', w: 0, h: 0, index: 0 };
   let timer = 0;
   let poll = 0;
   // Interact is where the stage opens: the page works as usual until the user
@@ -89,6 +149,7 @@
 
   function choose(cls, index = 0) {
     size.cls = cls;
+    size.index = index;
     if (cls !== 'fit') [size.w, size.h] = DEVICES[cls].sizes[index];
     commit();
     // A small settle, so a new size reads as a change and not a glitch. It is
@@ -132,7 +193,10 @@
 
     const percent = `${Math.round(zoom * 100)}%`;
     const sizes = isFit ? [] : DEVICES[size.cls].sizes;
-    const match = sizes.findIndex(([sw, sh]) => (sw === w && sh === h) || (sw === h && sh === w));
+    const fits = (entry) => !!entry && ((entry[0] === w && entry[1] === h) || (entry[0] === h && entry[1] === w));
+    // The size that was picked, if the frame still has its dimensions.
+    // Otherwise the first size that happens to match, or none.
+    const match = fits(sizes[size.index]) ? size.index : sizes.findIndex(fits);
     list.textContent = '';
     sizes.forEach(([sw, sh, label], index) => {
       list.add(new Option(`${label} · ${sw} × ${sh}`, String(index), false, index === match));
@@ -140,6 +204,10 @@
     if (isFit) list.add(new Option('Fit to window', 'fit', true, true));
     else if (match === -1) list.add(new Option('Custom', 'custom', true, true));
     list.disabled = isFit;
+    // Closed, the control says which device. The dimensions are in the two
+    // fields beside it, and in the list for choosing between devices.
+    nodes.listLabel.textContent = isFit ? 'Fit to window' : match === -1 ? 'Custom' : sizes[match][2];
+    nodes.listWrap.toggleAttribute('data-disabled', isFit);
 
     width.value = w;
     height.value = h;
@@ -186,8 +254,14 @@
     deviceButtons.push(fitBtn);
     devices.append(...deviceButtons);
 
-    const list = el('select', 'field size-list');
+    // A native list, for its keyboard and platform behaviour, laid invisibly
+    // over a label of our own. A select always shows its selected option's
+    // full text, and the closed control should only name the device.
+    const listWrap = el('span', 'field pick');
+    const listLabel = el('span', 'pick-label');
+    const list = el('select', 'size-list');
     list.setAttribute('aria-label', 'Size');
+    listWrap.append(listLabel, list);
     list.addEventListener('change', () => {
       if (list.value !== 'custom' && list.value !== 'fit') choose(size.cls, Number(list.value));
     });
@@ -234,8 +308,14 @@
     const zoomRead = el('span', 'read');
     zoomRead.title = 'How much the page is scaled down to fit';
 
-    bar.append(modes, devices, list, dims, rotate, el('span', 'grow'), zoomRead);
-    return { bar, list, width, height, rotate, zoomRead, deviceButtons };
+    // Three columns: the name at the left edge, the controls centred in the
+    // stage, the zoom at the right edge.
+    const brand = el('div', 'tb-brand');
+    brand.append(el('span', 'brand-mark'), el('span', 'tb-name', 'Design Tool'));
+    const mid = el('div', 'tb-mid');
+    mid.append(modes, devices, listWrap, dims, rotate);
+    bar.append(brand, mid, zoomRead);
+    return { bar, list, listWrap, listLabel, width, height, rotate, zoomRead, deviceButtons };
   }
 
   /**
@@ -476,8 +556,8 @@
 
       const stored = prefs.get('device');
       size = stored?.cls && (stored.cls === 'fit' || DEVICES[stored.cls])
-        ? { cls: stored.cls, w: clampSize(stored.w, 390), h: clampSize(stored.h, 844) }
-        : { cls: 'fit', w: 0, h: 0 };
+        ? { cls: stored.cls, w: clampSize(stored.w, 390), h: clampSize(stored.h, 844), index: Number(stored.index) || 0 }
+        : { cls: 'fit', w: 0, h: 0, index: 0 };
 
       const stage = el('div', 'stage');
       stage.setAttribute('data-loading', '');
