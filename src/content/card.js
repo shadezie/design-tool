@@ -25,10 +25,9 @@
     sun:
       `<svg ${STROKE}><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2` +
       'M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>',
-    // Two arrows passing each other: the panel and the page trade sides. It was
-    // a window with a side strip, which is the icon every app uses for "close
-    // the sidebar".
-    swap: `<svg ${STROKE}><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>`,
+    // A window with the panel on one side; the filled strip is where it goes.
+    dockLeft: `<svg ${STROKE}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M6 8v8" stroke-width="2.6"/></svg>`,
+    dockRight: `<svg ${STROKE}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="M18 8v8" stroke-width="2.6"/></svg>`,
   };
 
   function el(tag, className, text) {
@@ -589,7 +588,7 @@
       button.setAttribute('aria-pressed', String(units.mode === button.dataset.unit));
     }
     const left = prefs.get('side') === 'left';
-    setIcon(nodes.side, ICONS.swap, left ? 'Move the panel to the right' : 'Move the panel to the left');
+    setIcon(nodes.side, left ? ICONS.dockRight : ICONS.dockLeft, left ? 'Move the panel to the right' : 'Move the panel to the left');
     const light = prefs.get('theme') === 'light';
     setIcon(nodes.theme, light ? ICONS.moon : ICONS.sun, light ? 'Switch to dark' : 'Switch to light');
   }
