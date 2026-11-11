@@ -120,6 +120,9 @@
      ease-out; moving across the screen uses the strong ease-in-out. */
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* A gentler in-out (easeInOutCubic) for something large travelling a long
+     way, like the frame turning. The strong one above snaps at both ends. */
+  --ease-in-out-soft: cubic-bezier(0.645, 0.045, 0.355, 1);
 }
 
 /* ---- Panel, light: "Quiet". ----
@@ -409,6 +412,9 @@ input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .fit { position: relative; }
 .turn { position: absolute; inset: 0; }
+/* Its own layer for the length of the turn, so the page inside is moved as a
+   picture and not repainted on every frame. */
+.stage[data-turning] .turn { will-change: transform; }
 
 /* The size handles: right edge for width, bottom edge for height. Small and
    quiet until wanted: two short lines, as DevTools draws its own. */
@@ -416,7 +422,7 @@ input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   position: absolute;
   border-radius: 6px;
   touch-action: none;
-  transition: opacity 140ms ease;
+  transition: opacity 200ms ease;
 }
 .grip::before,
 .grip::after {
@@ -461,9 +467,12 @@ input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .stage[data-dragging] { user-select: none; }
 /* During a rotation the frame's edges are mid-air, so what hangs off them
    steps out and comes back when the turn lands. */
-.caption { transition: opacity 140ms ease; }
+.caption { transition: opacity 200ms ease; }
 .stage[data-turning] .grip,
 .stage[data-turning] .caption { opacity: 0; transition-duration: 0ms; }
+/* Invisible is not enough: a handle grabbed mid-turn would measure itself
+   against a frame that is still sideways. */
+.stage[data-turning] .grip { pointer-events: none; }
 /* While dragging, the page must not take the pointer or select its text. */
 .stage[data-dragging] .frame { pointer-events: none; }
 .caption {

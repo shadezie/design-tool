@@ -266,11 +266,12 @@ await page.waitForTimeout(60);
 check('rotating animates the frame', (await ask('animations')) > 0);
 check('the caption and handles step out for the turn', (await ask('count', '.stage[data-turning]')) === 1);
 await page.screenshot({ path: `${OUT}/stage-rotating.png` });
-await page.waitForTimeout(350);
+await page.waitForTimeout(600);
 check('and come back when it lands', (await ask('count', '.stage[data-turning]')) === 0);
 const turned = await ask('frame');
 check('rotate swaps width and height', turned.innerWidth === 844 && turned.innerHeight === 390, JSON.stringify(turned));
 await press('.rotate');
+await page.waitForTimeout(300); // let the turn land before measuring against the frame
 
 // The handle on the frame's edge. The frame is centred, so the width takes
 // twice the pointer's travel, divided by the zoom.

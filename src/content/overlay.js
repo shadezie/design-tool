@@ -203,7 +203,18 @@
         flip: [[{ transform: `translateX(${opts.dx || 0}px)` }, { transform: 'none' }], 220, curve('--ease-in-out', 'ease-in-out')],
         unfold: [[{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], 160, curve('--ease-out', 'ease-out')],
         // The stage's frame turning a quarter, as a device does in the hand.
-        turn: [[{ transform: 'rotate(-90deg)' }, { transform: 'none' }], 280, curve('--ease-in-out', 'ease-in-out')],
+        // Slower and softer than the rest: it is a large thing going a long
+        // way, and at 280ms on the strong curve it snapped. It eases off the
+        // canvas a touch at the midpoint, as something lifted and set down.
+        turn: [
+          [
+            { transform: 'rotate(-90deg) scale(1)' },
+            { transform: 'rotate(-45deg) scale(0.96)', offset: 0.5 },
+            { transform: 'rotate(0deg) scale(1)' },
+          ],
+          440,
+          curve('--ease-in-out-soft', 'ease-in-out'),
+        ],
         // A new size arriving. Barely there: this happens while comparing.
         settle: [[{ opacity: 0.6, transform: 'scale(0.985)' }, { opacity: 1, transform: 'none' }], 180, curve('--ease-out', 'ease-out')],
       };

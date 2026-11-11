@@ -347,7 +347,7 @@ What moves is decided by how often it happens.
 | --- | --- | --- |
 | Panel opens | A few times a session | Slides out of its edge. 220ms, `--ease-drawer` |
 | Device or size is picked | Occasional | A settle: opacity from 0.6 and scale from 0.985, 180ms, `--ease-out`. The frame itself jumps to its new size, because tweening the width would reflow the page at every width in between |
-| Frame is rotated | Occasional | Turns a quarter into place. 280ms, `--ease-in-out`. The caption and handles step out for the turn and fade back in 140ms when it lands: they belong to edges that are mid-air |
+| Frame is rotated | Occasional | Turns a quarter into place, dipping to 96% at the midpoint. 440ms, `--ease-in-out-soft`. Longer than the rest because it is a large object going a long way. The caption and handles step out for the turn and fade back in 200ms when it lands: they belong to edges that are mid-air |
 | Frame edge is dragged | Direct manipulation | **Never animates.** It follows the pointer |
 | Panel closes | A few times a session | Slides back into the same edge. 160ms, `--ease-out` |
 | Panel flips sides | Rare | Travels the distance it moved. 220ms, `--ease-in-out` |
