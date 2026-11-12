@@ -30,8 +30,11 @@ check('asks for no optional host permissions either', manifest.optional_host_per
 check('declares no always-on content script', manifest.content_scripts === undefined);
 check(
   'permissions stay minimal',
-  JSON.stringify(manifest.permissions) ===
-    JSON.stringify(['activeTab', 'scripting', 'storage', 'declarativeNetRequestWithHostAccess']),
+  // declarativeNetRequestWithHostAccess is the optional fourth: it lets the
+  // stage frame sites that forbid framing. It is off while that is on trial.
+  JSON.stringify(manifest.permissions) === JSON.stringify(['activeTab', 'scripting', 'storage']) ||
+    JSON.stringify(manifest.permissions) ===
+      JSON.stringify(['activeTab', 'scripting', 'storage', 'declarativeNetRequestWithHostAccess']),
   JSON.stringify(manifest.permissions)
 );
 

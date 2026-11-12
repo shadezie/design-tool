@@ -70,7 +70,14 @@ const toolbar = () =>
     // eslint-disable-next-line no-undef
     await toggle(tab);
   });
-const framingRules = () => sw.evaluate(async () => (await chrome.declarativeNetRequest.getSessionRules()).length);
+// Whether this build may lift a site's framing headers. That takes a
+// permission the manifest can ship with or without, and the checks below
+// follow whichever it is.
+const CAN_LIFT = JSON.parse(fs.readFileSync(path.join(HERE, '..', 'manifest.json'), 'utf8')).permissions.includes(
+  'declarativeNetRequestWithHostAccess'
+);
+const framingRules = () =>
+  sw.evaluate(async () => (chrome.declarativeNetRequest ? (await chrome.declarativeNetRequest.getSessionRules()).length : 0));
 
 /** Ask the tool a question from inside the content script's world. */
 const ask = (kind, arg) =>
@@ -379,10 +386,16 @@ await page.goto(`${ORIGIN}/deny`);
 await page.waitForTimeout(400);
 await toolbar();
 await page.waitForTimeout(1500);
-check('from the toolbar, a page that says DENY is framed', (await ask('mode')) === 'arena' && (await ask('count', '.notice')) === 0);
-check('one rule exists while the tool is on', (await framingRules()) === 1);
-await press('[data-device="mobile"]');
-check('and device sizes work on it', (await ask('frame')).innerWidth === 390);
+if (CAN_LIFT) {
+  check('from the toolbar, a page that says DENY is framed', (await ask('mode')) === 'arena' && (await ask('count', '.notice')) === 0);
+  check('one rule exists while the tool is on', (await framingRules()) === 1);
+  await press('[data-device="mobile"]');
+  check('and device sizes work on it', (await ask('frame')).innerWidth === 390);
+} else {
+  check('without the permission, a page that says DENY is inspected in place', (await ask('mode')) === 'inplace');
+  check('and the panel says why', (await ask('text')).includes('does not allow device preview'));
+  check('no rule is ever installed', (await framingRules()) === 0);
+}
 check('the page itself still refuses frames from anyone else', (await page.evaluate(() => fetch(location.href).then((r) => r.headers.get('x-frame-options')))) === 'DENY');
 
 // The second click has to turn it off. The worker used to keep its own idea
