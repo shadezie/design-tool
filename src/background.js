@@ -122,11 +122,8 @@ const FRAMING_HEADERS = ['x-frame-options', 'content-security-policy'];
  * so it is gone when the browser closes even if the removal never runs.
  */
 async function allowFraming(tab) {
-  // The permission for this is switched off in the manifest for now, to see how
-  // the tool does without it. With no permission the API is not there, and a
-  // site that forbids framing is inspected in place. Adding
-  // declarativeNetRequestWithHostAccess back to the manifest turns this on
-  // again; nothing else needs to change.
+  // Needs declarativeNetRequestWithHostAccess. A build without it has no such
+  // API, and a site that forbids framing is then inspected in place.
   if (!chrome.declarativeNetRequest) return;
   try {
     const { hostname, protocol } = new URL(tab.url || '');

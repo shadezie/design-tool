@@ -573,6 +573,14 @@ real browser. If it does not, the next step is a per-site prompt.
 The slow-page fix made on the way to this diagnosis was a real bug, but it was
 not this one. The lesson was to read the response headers before theorising.
 
+### The fourth permission was tried without, and kept
+
+Confirmed in a real browser on both counts. With the permission, the
+`activeTab` grant alone is enough for the rule to apply: a site sending
+`X-Frame-Options: DENY` loaded on the stage with no extra prompt. Without it,
+on the same site, the tool fell back to the panel sitting on the page every
+time. So it ships with four.
+
 ### The worker asks the page whether the tool is on
 
 The worker kept its own record of which tabs were on and cleared it when a tab

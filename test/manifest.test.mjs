@@ -30,11 +30,10 @@ check('asks for no optional host permissions either', manifest.optional_host_per
 check('declares no always-on content script', manifest.content_scripts === undefined);
 check(
   'permissions stay minimal',
-  // declarativeNetRequestWithHostAccess is the optional fourth: it lets the
-  // stage frame sites that forbid framing. It is off while that is on trial.
-  JSON.stringify(manifest.permissions) === JSON.stringify(['activeTab', 'scripting', 'storage']) ||
-    JSON.stringify(manifest.permissions) ===
-      JSON.stringify(['activeTab', 'scripting', 'storage', 'declarativeNetRequestWithHostAccess']),
+  // The fourth lets the stage frame sites that forbid framing. It was tried
+  // without: a site sending X-Frame-Options: DENY fell back every time.
+  JSON.stringify(manifest.permissions) ===
+    JSON.stringify(['activeTab', 'scripting', 'storage', 'declarativeNetRequestWithHostAccess']),
   JSON.stringify(manifest.permissions)
 );
 
