@@ -70,10 +70,6 @@
       return root;
     },
 
-    mounted() {
-      return host !== null;
-    },
-
     /**
      * True when an event came from our own UI. Events crossing a closed shadow
      * root are retargeted to the host, so this one check covers the whole panel.

@@ -76,6 +76,9 @@ const ask = (kind, arg) =>
             const b = node.getBoundingClientRect();
             return { x: b.x, y: b.y, width: b.width, height: b.height, cx: b.x + b.width / 2, cy: b.y + b.height / 2 };
           };
+          if (kind === 'fonts') {
+            return [...document.fonts].filter((f) => f.family.includes('Design Tool') && f.status === 'loaded').length;
+          }
           if (kind === 'text') return panel.textContent;
           if (kind === 'rect') return rectOf(arg ? panel.querySelector(arg) : panel);
           if (kind === 'count') return overlay.shadowRoot.querySelectorAll(arg).length;
@@ -161,6 +164,10 @@ const firstFrame = await panelText();
 check('a new user is told how it works before hovering', firstFrame.includes('How it works') && firstFrame.includes('Hover'));
 check('the footer says what a click will do', firstFrame.includes('Click an element to lock it.'));
 await page.screenshot({ path: `${OUT}/panel-empty.png` });
+
+// The bundled typefaces are fetched from the extension by the page's document,
+// which is the one thing the web_accessible_resources entry exists for.
+check('the bundled typefaces load', (await ask('fonts')) >= 2, `${await ask('fonts')} loaded`);
 
 // ---- hero tiles ----------------------------------------------------------
 await glide({ x: 200, y: 79 }); // the h1

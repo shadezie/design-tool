@@ -589,9 +589,24 @@ that. A record knocked out of step makes the next toolbar click send "turn on"
 to a tool that is already on, which looks like a dead button. The click now
 asks the content script for its state and toggles from the answer.
 
+### The font URLs change every session
+
+The bundled typefaces have to be web-accessible, because the page's own
+document fetches them. With a fixed URL, any website could request one and
+learn that this extension is installed. `use_dynamic_url` gives the files an
+address that changes per session, so there is nothing stable to probe. A test
+asserts the faces still load.
+
+### A cleanup before the move
+
+Removed what nothing used any more: a ground token kept "for emphasis", a row
+tone, a unit formatter, a mount check, two exports and a parameter. A scan for
+unsafe DOM writes found two `innerHTML` sites, both fed only by the static icon
+tables in the same file.
+
 ### What is deliberately not here yet
 
-- Dragging the frame's edge to resize it.
+- Remembering a stage size per site rather than globally.
 - Remembering a stage size per site rather than globally.
 - New README and store screenshots. The existing ones are hand-made captures
   of real sites and show the old card.

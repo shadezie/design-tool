@@ -31,7 +31,7 @@
 
       const wrap = el('div', 'sbox');
       wrap.appendChild(
-        ring('margin', 'Margin', margin, ring('padding', 'Padding', padding, content, ctx), ctx)
+        ring('Margin', margin, ring('Padding', padding, content, ctx), ctx)
       );
 
       const notes = el('dl', 'sbox-note');
@@ -78,8 +78,8 @@
     list.appendChild(dd);
   }
 
-  function ring(kind, label, box, inner, ctx) {
-    const node = el('div', `ring ring-${kind}`);
+  function ring(label, box, inner, ctx) {
+    const node = el('div', 'ring');
     node.appendChild(el('span', 'ring-label', label));
     node.appendChild(side(box.top, ctx));
 

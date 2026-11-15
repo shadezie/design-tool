@@ -532,8 +532,6 @@
   }
 
   DT.stage = {
-    DEVICES,
-
     get active() {
       return nodes !== null;
     },

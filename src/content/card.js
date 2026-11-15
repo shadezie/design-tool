@@ -344,8 +344,6 @@
   let nodes = null;
 
   DT.card = {
-    copyable,
-
     /** Adopt stored fold state. Call after prefs.load(). */
     adopt() {
       folds = prefs.get('folds') || {};
@@ -471,7 +469,7 @@
       body.appendChild(heroTiles(data, fmt, opts.measurement));
 
       if (opts.measurement) {
-        body.appendChild(measurementSection(opts.measurement, fmt, opts.pair));
+        body.appendChild(measurementSection(opts.measurement, opts.pair));
       }
 
       if (data.media) body.appendChild(mediaSection(data.media, fmt));
@@ -653,7 +651,7 @@
     return wrap;
   }
 
-  function measurementSection(measurement, _fmt, pair) {
+  function measurementSection(measurement, pair) {
     const multi = measurement.values.length > 1;
     const { node, body } = section(null);
 

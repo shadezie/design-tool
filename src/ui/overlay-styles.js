@@ -63,12 +63,11 @@
   --halo: rgba(255, 255, 255, 0.82);
 
   /* ---- Panel, dark: "Ink". ----
-     Graphite rather than black. One ground for the whole panel, a slightly
-     lighter well for controls and a darker one kept for emphasis. Structure
+     Graphite rather than black. One ground for the whole panel and a slightly
+     lighter well for controls. Structure
      comes from hairlines and type weight, not from boxes. */
   --bg: #151618;
   --bg-raised: #222428;
-  --bg-sunken: #0f1012;
   --seg: #34373d;
   --seg-shadow: none;
   --line: rgba(255, 255, 255, 0.075);
@@ -131,7 +130,6 @@
 .layer[data-theme="light"] {
   --bg: #ffffff;
   --bg-raised: #f3f3f4;
-  --bg-sunken: #f7f7f8;
   --seg: #ffffff;
   --seg-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   --line: #ebebed;
@@ -879,7 +877,6 @@ input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .row dd.is-wrap { white-space: normal; overflow: visible; }
 .row dd.is-warn { color: var(--warn); }
 .row dd.is-danger { color: var(--danger); }
-.row dd.is-ok { color: var(--ok); }
 
 /* Copyable values are real controls: focusable, with a hit area that extends
    past the glyphs. The confirmation is the "right" colour and is quick: it is
@@ -925,7 +922,7 @@ input.field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 /* ---------- status footer ---------- */
 
 /* The tool talking to you, rather than data about the page, so it sits on its
-   own sunken strip at the bottom edge, where it never moves. */
+   own strip at the bottom edge, where it never moves. */
 .panel-foot {
   flex: none;
   display: flex;

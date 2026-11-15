@@ -54,7 +54,7 @@ function check(theme, set, fg, bg, floor) {
 }
 
 for (const [theme, set] of [['dark ', dark], ['light', light]]) {
-  for (const ground of ['bg', 'bg-raised', 'bg-sunken']) {
+  for (const ground of ['bg', 'bg-raised']) {
     check(theme, set, 'text', ground, 7);
     check(theme, set, 'text-2', ground, 4.5);
   }

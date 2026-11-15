@@ -50,7 +50,6 @@ carry the emphasis that boxes used to.
 | --- | --- | --- | --- |
 | `--bg` | `#151618` | `#FFFFFF` | The panel and the stage toolbar |
 | `--bg-raised` | `#222428` | `#F3F3F4` | Wells: segmented controls, fields, buttons, kbd |
-| `--bg-sunken` | `#0F1012` | `#F7F7F8` | Reserved for emphasis |
 | `--seg` | `#34373D` | `#FFFFFF` + hairline shadow | The active chip in a segmented control |
 | `--canvas` | `#0A0B0C` | `#F1F1F2` | The stage behind the framed page, with `--dots` |
 | `--line` | white 7.5% | `#EBEBED` | Hairlines between sections |
@@ -244,7 +243,7 @@ dismissed. Numbered because it is a sequence.
 ### Status footer
 
 A dot in the state's colour, one sentence saying what the next click does, and
-a Clear button whenever something is locked. It is on `--bg-sunken` because it
+a Clear button whenever something is locked. It sits apart at the bottom edge because it
 is the tool talking to you rather than data about the page.
 
 ### Hero values

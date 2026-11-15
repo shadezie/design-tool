@@ -67,13 +67,6 @@
       return `${round(px)}px`;
     },
 
-    /** Same as format() but always keeps the unit suffix, even for zero. */
-    formatStrict(px, elFontSize) {
-      if (!Number.isFinite(px)) return '-';
-      if (px === 0) return mode === 'px' ? '0px' : `0${mode}`;
-      return units.format(px, elFontSize);
-    },
-
     /** Parse a computed CSS length ("12px", "normal", "") to a number or null. */
     parse(value) {
       const n = parseFloat(value);
